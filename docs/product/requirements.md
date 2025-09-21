@@ -36,14 +36,9 @@
 * **作者証明/分配**
 
   * **BundleHash**（ビルド成果物の内容ハッシュ）を算出
+    * vercelへのデプロイを想定。ハッカソンの提出の時間がなければ動的レンダリングを考慮する。
   * **EIP-712 署名**→ \*\*Registry（HyperEVM）\*\*へ登録
   * **UISplit**（受け口）に対し Builder Code の `b` を固定付与
-
-## 1.2 Out of scope（MVP外）
-
-* 永続DB（Supabase/Postgres）。一覧は**Registryイベント走査**で代替
-* マルチチェーン本格対応、KPIのサーバ保存、自動A/B
-* 完全オンチェーンUI保管（CIDメタのみ）
 
 ---
 
@@ -76,7 +71,7 @@
 
 * 入力：自然言語戦略
 * 出力：**UI DSL(JSON)**＋**ライブプレビュー**
-* 構成：`OrderPanel | RiskCard | FundingCard | PnLCard | Chart | Alerts` の有限集合
+* 構成：`OrderPanel | RiskCard | FundingCard | PnLCard | Chart | Alerts` の有限集合(要検討)
 * 今回は実装しないもの: **差分パッチ**：追加入力で局所更新（再生成で画面破壊しない）チャット入力欄のモックだけ設置。
 
 ## 4.2 個別トレード画面
@@ -252,7 +247,7 @@ const UI = z.object({
 
 ## 12.1 コア生成エンジン
 
-* LLM（GPT-4/Claude）→ **UI DSL(JSON)**
+* LLM（Openrouter, GPT-5/Claude）→ **UI DSL(JSON)**
 * **Zodで検証→TSXレンダ**、未知は `InfoCard`
 * **@nktkas/hyperliquid** を薄いラッパで包んで依存点を限定 ([GitHub][10])
 
@@ -272,7 +267,7 @@ const UI = z.object({
 
 # 13. 技術スタック確定
 
-* **フロント**：Next.js 14（App Router）＋ shadcn/ui ＋ Tailwind
+* **フロント**：Next.js（App Router）＋ shadcn/ui ＋ Tailwind
 * **ウォレット**：**Reown AppKit**（WalletConnect後継） ([docs.reown.com][4])
 * **HL SDK**：**@nktkas/hyperliquid**（TS、HTTP/WS、バージョン固定） ([npm][11])
 * **型/検証**：TypeScript + Zod + decimal.js
@@ -321,8 +316,6 @@ const UI = z.object({
 3. **/api/order** 実装（Registry照合→`b/f`強制）
 4. **BundleHash 生成・署名UI・Registry/Split**（testnet）
 5. **Vercel デプロイAPI**（あなた側から自動で）と起動時照合
-
-この要件定義で、そのまま実装を進められます。必要なら、\*\*最小スターター（コード雛形＋Foundryテスト）\*\*も一気に用意します。
 
 [1]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api?utm_source=chatgpt.com "API - Hyperliquid Docs - GitBook"
 [2]: https://hyperliquid.gitbook.io/hyperliquid-docs/trading/builder-codes?utm_source=chatgpt.com "Builder codes - Hyperliquid Docs - GitBook"

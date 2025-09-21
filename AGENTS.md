@@ -1,5 +1,6 @@
 ## 概要
-
+- プロダクト名は **HyperUX**。プロンプトから Hyperliquid に最適化されたトレード UI を生成し、BundleHash × EIP-712 で著作者証明を行い Builder Code Split で収益を分配する。
+- Next.js App Router + Reown AppKit + @nktkas/hyperliquid SDK を基盤とし、サーバ経由で Hyperliquid に安全に注文を中継する。
 
 ## 技術スタック
 - アプリ: Next.js App Router / TypeScript
@@ -18,6 +19,8 @@
 - 推奨コマンド: `bun install`, `bun run dev`, `bun run build`, `bun run lint`
 - ローカル開発: ユーザー側で開発サーバを起動（CI は build/lint/test のみ）
 - .env: `.env.local`（Web）, `services/relayer/.env`（Relayer）など用途別に分割。秘匿情報は共有しない。
+- 主要環境変数: `NEXT_PUBLIC_PROJECT_ID`, `HYPERLIQUID_API_URL`, `HYPERLIQUID_WS_URL`, `HYPEREVM_RPC_URL`, `REGISTRY_ADDRESS`, `UISPLIT_ADDRESS`。追加時は README と docs に追記。
+- Node runtime が必要な Route Handler `/api/order` などは `export const runtime = "node"` を明示する。
 
 ## ディレクトリ設計（ベストプラクティス）
 - `frontend/` … Next.js（App Router, TS）
@@ -27,6 +30,10 @@
 - `task/` … タスクMarkdown（Issueと相互リンク）
 - `.github/` … Issue/PR テンプレート、ワークフロー（CI）
 
+### 追加ディレクトリメモ
+- `docs/` 配下には Hyperliquid / Reown / Vercel の調査メモがまとまっている。仕様差分が出た場合はここへの追記を優先する。
+- 将来的に `services/` 配下へ API Gateway やジョブキューを配置する想定。Docs に明記されるまでは勝手に作成しない。
+
 
 ## 開発ルール
 - TypeScript: `strict: true` 前提、ESLint/Prettierを有効化
@@ -35,6 +42,8 @@
 - 環境変数: `NEXT_PUBLIC_` 接頭辞の公開変数と秘密変数を明確に分離
 - セキュリティ: 秘密鍵/トークンの直書き禁止。メール/PII はハッシュ/マスキングで保存。
 - ドキュメント: 設計変更は `docs/product/requirements.md/` に反映し、関連PRにリンク
+- UI DSL や API 契約に変更が入った場合はサンプル JSON / Zod スキーマを docs に追加してからマージする。
+- 外部仕様の参照は一次情報（Hyperliquid Docs / Reown Docs / Vercel Docs）をソースとし、リンクと取得日を記録。
 
 ## Git 運用ルール（Issue駆動）
 - 起票: 開発は GitHub Issue 単位で行う。`task/` に対応するタスクMDを作成し、Issue からリンク（双方向）。
@@ -61,19 +70,61 @@
 - コミット規約: Conventional Commits（feat/fix/docs/chore/refactor/test/build）
 
 ## テスト方針
+- 最低限 `bun run lint` と `bun run build` をパスしてから PR を作成。
+- API ルートは MSW + Vitest で Contract Test を記述し、Builder Code 強制やレート制限の分岐を網羅。
+- WebSocket 管理ロジックは再接続シナリオを含むユニットテストを用意（ws mock を活用）。
+- UI DSL バリデーションはサンプル DSL Fixture で Zod の成功/失敗ケースを網羅。
+- 将来的な E2E（Playwright）で Prompt→注文→約定のゴールデンフローを抑える。
 
 ## 環境/デプロイ
-
+- 本番デプロイは Vercel。Preview で算出した BundleHash を Registry の `deploymentIdHash` と突き合わせてから有効化。
+- ハッカソン期間は Preview URL を共有し、審査用 `/demo` ページを準備する。
+- バックエンド恒久化は Vercel Functions（Node runtime）を起点に、需要が増えたら Queue/Worker へ拡張。
+- CI は GitHub Actions + Vercel（lint/build/test）をセットで運用予定。
 
 ## セキュリティ・運用
 - インシデント: 影響/暫定対応/恒久対策/再発防止をタスク化（/task に記録）
+- Builder Code / Fee Override は必ずサーバで強制。クライアント送信値を信頼しない。
+- 署名処理は SDK もしくは監査済みスニペットのみ使用。秘密鍵は環境変数に置かず、Vault 等を利用。
+- 入金導線では 5 USDC 未満のブリッジ禁止を UI/Server 両方でガード。
+- ログは PII を含めない。必要な場合はハッシュ化して保存。
 
 ## AI エージェントの使い方
-- 仕様理解: xxxを参照
-- 設計変更: 変更時は設計ドキュメントも更新し PR に含める
-- 外部ドキュメント: Context7 を用いて規格/依存の最新仕様を参照
-- serena MCPを使用しコンテキストを効率的に理解する
-- deepwiki MCPを使用してgithubの内容を理解する
+- 仕様理解: 常に `docs/product/requirements.md` と関連資料を一次ソースと突き合わせて最新化する。
+- 設計変更: 差分はドキュメントへ即反映し、引用元リンクと取得日時を記載。
+- リサーチ: Context7 MCP / deepwiki MCP を活用し Hyperliquid・Reown・Vercel の最新仕様を確認する。
+- タスク実行: `update_plan` で手順を共有し、作業後は `bun run lint` / `bun run build` の結果を要約する。
+- レポート: Issue/PR/タスク Markdown を整備し、BundleHash・Builder Code の差分を明記する。
+
+## AI エージェントの役割
+- 要件精査とドキュメント更新の維持。
+- Next.js フロント、API Route、LLM プロンプト、テストコードの実装支援。
+- Hyperliquid / Reown / Vercel の仕様確認と差分追跡。
+- デモ脚本やリリースノートの草案作成。
+
+## ワークフロー（AI エージェント）
+1. `serena__activate_project` → `serena__check_onboarding_performed` を実施。
+2. 影響範囲のファイルと docs を読み、`update_plan` で作業方針を明文化。
+3. コード変更は `apply_patch` / `insert` ツールで行い、前後の文脈を再確認する。
+4. 作業後は `bun run lint` / `bun run build` を実行し、結果をまとめる（未実行の場合は理由と手順を提示）。
+5. ドキュメント更新と完成報告（要約 + 次の推奨ステップ）を行う。
+
+## MCP / 外部ドキュメント利用指針
+- Hyperliquid API/WS/Builder Code: `https://context7.com/websites/hyperliquid_gitbook_io_hyperliquid-docs`。
+- Reown AppKit: `https://context7.com/websites/reown`。
+- Hyperliquid SDK（@nktkas）: `https://deepwiki.com/nktkas/hyperliquid`。
+- 参照した外部情報は出典リンクと取得日を docs に記録する。
+
+## ドキュメント更新手順
+- 要件・設計の変更は `docs/product/requirements.md` の該当セクションに追記し、アンカーを付与。
+- ワークフローや運用ルールは `AGENTS.md` を更新。
+- Issue 発行時は `/task/` 配下に Markdown を作成し、Issue へリンク（双方向）。
+- LLM プロンプト／UI DSL サンプルは `docs/reown/` や `docs/product/` に保存し、例示を増やす。
+
+## 緊急時対応
+- Hyperliquid API 障害: `/task/incident-YYYYMMDD.md` を作成し、影響/暫定対応/恒久対策を整理。
+- レート制限超過: バックオフしつつユーザーにはバナーで通知、復旧後にログを添付して報告。
+- セキュリティインシデント: 鍵ローテーションと Registry 無効化手順を即実行し、Runbook に追記する。
 
 ## 参考
 

@@ -330,7 +330,162 @@ const UI = z.object({
 [11]: https://www.npmjs.com/package/%40nktkas/hyperliquid/v/0.15.4?utm_source=chatgpt.com "nktkas/hyperliquid"
 [12]: https://deepwiki.com/nktkas/hyperliquid "deepwiki/nktkas/hyperliquid"
 
+---
 
+# 17. システムアーキテクチャ
+
+## 17.1 全体像
+
+```
+ユーザー → Next.js App Router (frontend) → App API Routes (Node) → Hyperliquid REST/WS
+                                                      ↘ HyperEVM Registry / UISplit
+                                                      ↘ Vercel Deploy API
+```
+
+* **クライアント層**：App Router + React Server Components。UI DSL を受け取り、Server Actions で API 呼び出し。
+* **サーバ層**：Next.js Edge/Node Functions のうち、発注系は Node Runtime に固定（Hyperliquid SDK / crypto 依存のため）。
+* **データレイヤ**：外部 API のみ。状態は TanStack Query + React 状態で保持し、永続 DB は MVP では持たない。
+
+## 17.2 クライアント
+
+- UI DSL を Zod で検証し、型安全に TSX へマッピング。
+- TanStack Query を `initialData` で SSR し、WS の push を Query Cache にミューテーションとして反映。
+- `ContextProvider`（Reown + Wagmi + QueryClient）で全ページ共通の Provider を構成。
+- `app/(trade)/t/[bundleHash]/page.tsx` で BundleHash ごとの UI を生成、`generateStaticParams` は利用せず On-Demand ISR を前提。
+
+## 17.3 サーバ/API
+
+- `/api/order`：Node runtime、Hyperliquid SDK を利用。Builder Code 強制・Idempotency-Key システム。内部で `@nktkas/hyperliquid` の `exchange()` をコール。
+- `/api/registry/*`：HyperEVM RPC（Alchemy/自前ノード）への読み書き。`ethers` v6 を利用し、ChainId は HyperEVM Testnet/Mainnet を環境変数で切替。
+- `/api/deploy`：Vercel REST の `/v2/files`・`/v13/deployments` を呼び出し、結果を Registry へ反映する Task Queue（BullMQ など）に連携予定。MVP では同期処理。
+
+## 17.4 外部依存
+
+- **Hyperliquid**：REST（発注・ポジション取得）、WS（ticker/positions/funding/notifications）。WS は 1 ソケットで複数購読。
+- **HyperEVM**：Registry/UISplit 参照＆登録用。EIP-712 ドメイン `name: "HyperUXRegistry", version: "1"` を固定化。
+- **Vercel**：デプロイのハッシュ一致確認および Preview URL 取得。
+- **OpenRouter 等 LLM API**：UI DSL 生成用。代替としてローカルモデルを想定しておく。
+
+---
+
+# 18. 技術選定と理由
+
+- **Next.js 15 App Router**：Server Actions / Route Handlers で API を統合実装。RSC で初期データ配信、SEO 向上。
+- **Tailwind CSS v4 + shadcn/ui**：Figma→Tailwind 変換が容易。プリミティブを shadcn で補う。
+- **Reown AppKit + Wagmi v2**：WalletConnect 後継の UX。SSR 対応、マルチチェーン構成が簡易。
+- **@nktkas/hyperliquid SDK**：REST/WS 双方の型付け済みラッパ。署名ロジックを内包し、実装ミスを低減。
+- **TanStack Query v5**：REST スナップショットと WS push の統合、再接続時のキャッシュ再利用。
+- **Zod + TypeBox**（検討）：DSL/HTTP リクエストを厳格検証。Runtime でガード。
+- **decimal.js-light**：証拠金やレバ計算で浮動小数誤差を回避。
+- **BullMQ（将来）**：/api/deploy の非同期化やレート制限緩和に利用予定。MVP では Optional。
+- **Posthog or Sentry**：TTV・エラー収集用。MVP では最低限のエラーログのみ。
+
+---
+
+# 19. UI DSL 詳細仕様
+
+## 19.1 コンポーネント定義
+
+| key | 必須プロパティ | 任意プロパティ | 備考 |
+| --- | --- | --- | --- |
+| `OrderPanel` | `market`(string), `side`(`buy`/`sell`), `sizeUsd`(number), `orderType`(`market`/`limit`) | `price`, `leverage`, `tpPct`, `slPct`, `postOnly` | price 指定は limit のみ必須 |
+| `RiskCard` | `maxLeverage`, `maintenanceMargin`, `availableBalance` | `warnings`(string[]) | 計算値はサーバ側の `/api/info/portfolio` を利用 |
+| `FundingCard` | `currentFundingRate`, `nextFundingRate`, `settlementTime` | `historical`(array) | FR > 0.1% で強調表示 |
+| `PnLCard` | `unrealizedPnl`, `realizedPnl`, `entryPrice`, `liquidationPrice` | `pnlHistory` | マイナス値は赤表示 |
+| `Chart` | `market`, `interval`(`1m`/`5m`/`1h`/`1d`) | `overlays`, `indicators` | TradingView Lightweight Charts を利用予定 |
+| `Alerts` | `rules`: `[{ metric: "funding"|"price"|"pnl", operator, threshold }]` | `channel`(`modal`/`toast`) | operator は `lt`/`gt` |
+
+## 19.2 レイアウトルール
+
+- `layout` フィールドは **Grid テンプレート**。例：`["OrderPanel","Chart","RiskCard"]`。重複許容、Tailwind Grid にマッピング。
+- クライアントは `layout` の順序でコンポーネントを縦積み。`columns` プロパティでレスポンシブ分岐（例：`{ base: 1, lg: 2 }`）。
+- 未知 key は `InfoCard` に置換し、ユーザーへ「未サポート」のガイドを表示。
+- サーバは DSL を `BundleHash` とともに保存し、マーケットプレイス詳細に JSON download リンクを提供。
+
+## 19.3 バリデーション・デフォルト
+
+- `sizeUsd` の最小値は 5 USDC（Hyperliquid 最小）。
+- `leverage` 未指定時は 1x。`tpPct` / `slPct` は 2 桁精度で丸め。
+- LLM の出力が欠落している場合はテンプレ OR 前回成功時の DSL を再利用。
+
+---
+
+# 20. LLM プロンプト設計・運用
+
+- **System Prompt**：利用可能コンポーネント一覧・検証ルール・Builder Fee の説明を含める。
+- **User Prompt**：ユーザー入力 + 既存口座情報（証拠金・建玉）を Few-shot 付きで渡す。
+- **出力フォーマット**：`json` トリプルバックティックで返答させ、`zod.safeParse` に失敗した場合は 1 回まで自動リトライ。
+- **安全策**：
+  - 25x を超えるレバレッジを禁止。
+  - 残高 < 必要証拠金のケースは `warnings` を Alerts に挿入し、`sizeUsd` を調整。
+- **キャッシュ**：`hash(prompt + market snapshot)` をキーに DynamoDB/Upstash Redis を利用予定（MVP では in-memory）。
+- **監査ログ**：入力/出力の diff を匿名化し、S3 へ保存。ハッカソンでは JSON Lines をローカルに保存。
+
+---
+
+# 21. 状態管理とデータ取得
+
+- **TanStack Query**：REST スナップショット（positions, balances, funding）を `prefetchQuery` で SSR。`staleTime` は 5 秒。
+- **WebSocket Manager**：単一クラスで `subscribe({ topic, payload, handlers })` を実装し、複数ビューで共有。
+- **再接続戦略**：指数バックオフ（1s, 2s, 4s, 8s, 最大 30s）+ ジッター。再接続後は `resubscribe` を発火。
+- **クッキー連携**：Wagmi の `cookieToInitialState` を利用し、SSR で署名済みセッションを復元。
+- **テストダブル**：WS / REST はモックサーバ（MSW + WebSocket mock）で単体検証。
+
+---
+
+# 22. `/api/order` 詳細設計
+
+```ts
+type OrderRequest = {
+  orders: Array<{
+    market: string;
+    side: "buy" | "sell";
+    size: number; // in quote
+    orderType: "market" | "limit";
+    price?: number;
+    reduceOnly?: boolean;
+    clientOrderId?: string;
+  }>;
+  f?: number; // builder fee override
+};
+```
+
+- **必須ヘッダ**：`x-bundle-hash`, `x-wallet-address`, `x-idempotency-key`。
+- **検証フロー**：
+  1. `BundleHash` → Registry 取得。存在しなければ 403。
+  2. Builder Fee 上限 `fMax` をユーザー承認から取得（GraphQL or stored session）。
+  3. 各注文の `size` 合計が `availableBalance` を超えないかチェック。
+  4. HL SDK へ送信し、レスポンスに `status`, `orderHashes` を含めて返却。
+- **エラー分類**：
+  - `400 VALIDATION_ERROR`
+  - `401 SIGNATURE_REQUIRED`（署名ウォレット不一致）
+  - `403 BUNDLE_NOT_AUTHORIZED`
+  - `429 RATE_LIMITED`
+  - `502 HL_DOWNSTREAM`
+- **監査ログ**：`orders`, `response`, `bundleHash`, `builderCode`, `latencyMs` を CloudWatch/Supabase に保存。
+
+---
+
+# 23. 観測・運用
+
+- **メトリクス**：TTV、WS 再接続回数、Builder Fee usage、Prompt→DSL 成功率。
+- **ログ**：Server Actions / API は `pino` で JSON ログ。LLM 出力は個人情報を除去。
+- **アラート**：Rate limit 連続失敗、Hyperliquid API 503 連発、Registry 書き込み失敗を Slack Webhook に通知。
+- **Feature Flag**：UI DSL の危険コンポーネント（例：高レバ専用）を LaunchDarkly で制御予定（MVP は環境変数）。
+
+---
+
+# 24. 開発マイルストーン（16時間想定）
+
+1. **0-2h**：UI DSL スキーマと Zod 実装、サンプル DSL 作成。
+2. **2-5h**：TanStack Query + WS マネージャ scaffold、Hyperliquid SDK の REST/WS ラッパ。
+3. **5-8h**：Reown AppKit 接続、`/api/order` の Builder Code 強制・Idempotency 実装。
+4. **8-11h**：LLM プロンプト整備、Few-shot + 検証サイクル。
+5. **11-13h**：マーケットプレイス一覧/詳細（Registry モック）と BundleHash 表示。
+6. **13-15h**：Vercel デプロイ API（同期版）と BundleHash 照合 UI。
+7. **15-16h**：E2E デモ動線（Prompt→注文）、レート制限/WS 障害テスト。
+
+必要に応じて後倒し：自動デプロイ・非同期処理・Feature Flag。
 ---
 
 // 報酬分配と作成者の検証について
@@ -384,7 +539,7 @@ const UI = z.object({
 
 ---
 
-# 4) すばやい結論まとめ
+# 3) すばやい結論まとめ
 
 * **Hyperliquid 機能だけでも単一アドレスへの報酬は可能**（Builder Code）。**複数人分配**を自動化したいなら**Split スマコンが必要**。([Hyperliquid Docs][1])
 * **作成者検証**は **BundleHash（内容）× EIP-712 署名 × Registry** を**要件に明記**。Vercel は**内容ハッシュ生成と不変URLの発行**に使い、**サーバから自動デプロイ**。([Vercel][3])
@@ -398,3 +553,5 @@ const UI = z.object({
 [5]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket?utm_source=chatgpt.com "Websocket - Hyperliquid Docs - GitBook"
 [6]: https://vercel.com/docs/rest-api/reference/endpoints/deployments/upload-deployment-files?utm_source=chatgpt.com "Upload Deployment Files - Vercel API Docs"
 [7]: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/rate-limits-and-user-limits?utm_source=chatgpt.com "Rate limits and user limits - Hyperliquid Docs - GitBook"
+
+---

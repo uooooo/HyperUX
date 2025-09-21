@@ -1,0 +1,1267 @@
+# Hooks
+
+Hooks are React functions that provide access to wallet connection features, modal controls, blockchain interactions, and wallet event subscriptions. They enable you to manage wallet connections, handle user authentication, interact with smart contracts, and respond to wallet events in your application.
+
+## Hook Ecosystem
+
+AppKit provides a comprehensive set of React hooks that work together to provide a complete wallet connection and blockchain interaction experience. These hooks can be categorized into several functional groups:
+
+* **Connection Hooks**: Manage wallet connections and user authentication (`useAppKit`, `useAppKitAccount`, `useDisconnect`)
+* **Network Hooks**: Handle blockchain network selection and information (`useAppKitNetwork`)
+* **UI Control Hooks**: Control the modal and UI elements (`useAppKitState`, `useAppKitTheme`)
+* **Data Access Hooks**: Access wallet and blockchain data (`useAppKitBalance`, `useWalletInfo`)
+* **Event Hooks**: Subscribe to wallet and connection events (`useAppKitEvents`)
+* **Payment Hooks**: Handle crypto payments and exchange integrations (`usePay`, `useAvailableExchanges`, `usePayUrlActions`, `useExchangeBuyStatus`)
+* **Multi-Wallet Hooks**: Manage multiple wallet connections (`useAppKitConnections`, `useAppKitConnection`)
+* **Authentication Hooks**: Handle authentication and user management (`useAppKitUpdateEmail`, `useAppKitSIWX`)
+* **Solana-Specific Hooks**: Solana blockchain interactions (`useAppKitConnection` from Solana adapter)
+
+The diagram below illustrates how these hooks relate to each other and to the core AppKit functionality:
+
+```mermaid
+graph TD
+  AppKit[AppKit Core] --> ConnHooks[Connection Hooks]
+  AppKit --> NetworkHooks[Network Hooks]
+  AppKit --> UIHooks[UI Control Hooks]
+  AppKit --> DataHooks[Data Access Hooks]
+  AppKit --> EventHooks[Event Hooks]
+  AppKit --> PaymentHooks[Payment Hooks]
+  AppKit --> MultiWalletHooks[Multi-Wallet Hooks]
+  AppKit --> AuthHooks[Authentication Hooks]
+  AppKit --> SolanaHooks[Solana-Specific Hooks]
+  
+  ConnHooks --> useAppKit
+  ConnHooks --> useAppKitAccount
+  ConnHooks --> useDisconnect
+  ConnHooks --> useAppKitWallet
+  
+  NetworkHooks --> useAppKitNetwork
+  
+  UIHooks --> useAppKitState
+  UIHooks --> useAppKitTheme
+  
+  DataHooks --> useWalletInfo
+  DataHooks --> useAppKitBalance
+  
+  EventHooks --> useAppKitEvents
+  
+  PaymentHooks --> usePay
+  PaymentHooks --> useAvailableExchanges
+  PaymentHooks --> usePayUrlActions
+  PaymentHooks --> useExchangeBuyStatus
+  
+  MultiWalletHooks --> useAppKitConnections
+  MultiWalletHooks --> useAppKitConnection
+  
+  AuthHooks --> useAppKitUpdateEmail
+  AuthHooks --> useAppKitSIWX
+  
+  SolanaHooks --> useAppKitConnectionSolana[useAppKitConnection]
+  
+  useAppKit -.-> useAppKitAccount
+  useAppKitAccount -.-> useAppKitBalance
+  useAppKitNetwork -.-> useAppKitBalance
+  useAppKitWallet -.-> useAppKitAccount
+  usePay -.-> useAvailableExchanges
+  usePayUrlActions -.-> useExchangeBuyStatus
+```
+
+These hooks provide a modular way to integrate wallet functionality into your application, allowing you to use only the features you need.
+
+## useAppKit
+
+The primary hook for controlling the modal's visibility and behavior. Use this hook when you need to programmatically open or close the modal, or when you want to show specific views like the connection screen or account details.
+
+```ts
+import { useAppKit } from "@reown/appkit/react";
+
+export default function Component() {
+  const { open, close } = useAppKit();
+}
+```
+
+### Use Cases
+
+* Opening the modal when a user clicks a "Connect Wallet" button
+* Closing the modal after a successful connection
+* Opening specific views of the modal (e.g., account view, connect view)
+* Handling custom wallet connection flows
+
+### Returns
+
+* `open`: Function to open the modal
+* `close`: Function to close the modal
+
+### Parameters
+
+You can also select the modal's view when calling the `open` function
+
+```ts
+open({ view: "Account" });
+
+// to connect and show multi wallets view
+open({ view: "Connect" });
+
+// to connect and show only solana wallets
+open({ view: "Connect", namespace: "solana" });
+
+// to connect and show only bitcoin wallets
+open({ view: "Connect", namespace: "bip122" });
+
+// to connect and show only ethereum wallets
+open({ view: "Connect", namespace: "eip155" });
+
+// to open swap with arguments
+open({
+  view: 'Swap',
+  arguments: {
+    amount: '321.123',
+    fromToken: 'USDC',
+    toToken: 'ETH'
+  }
+})
+
+// to open wallet send interface
+open({ view: 'WalletSend' })
+```
+
+**Available namespaces for the Connect view:**
+
+| Namespace | Description                        |
+| --------- | ---------------------------------- |
+| solana    | For connecting to Solana wallets   |
+| bip122    | For connecting to Bitcoin wallets  |
+| eip155    | For connecting to Ethereum wallets |
+
+**List of views you can select:**
+
+| Variable        | Description                                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Connect         | Principal view of the modal - default view when disconnected. A `namespace` can be selected to connect to a specific network (solana, bip122 or eip155) |
+| Account         | User profile - default view when connected                                                                                                              |
+| AllWallets      | Shows the list of all available wallets                                                                                                                 |
+| Networks        | List of available networks - you can select and target a specific network before connecting                                                             |
+| WhatIsANetwork  | "What is a network" onboarding view                                                                                                                     |
+| WhatIsAWallet   | "What is a wallet" onboarding view                                                                                                                      |
+| OnRampProviders | On-Ramp main view                                                                                                                                       |
+| WalletSend      | Token sending interface that allows users to send tokens to another address                                                                             |
+| Swap            | Swap main view                                                                                                                                          |
+
+## useAppKitAccount
+
+The essential hook for accessing wallet connection state and user information. Use this hook whenever you need to know if a user is connected, get their wallet address, or access their embedded wallet details.
+
+```ts
+import { useAppKitAccount } from "@reown/appkit/react";
+
+const { address, isConnected, caipAddress, status, embeddedWalletInfo } =
+  useAppKitAccount();
+```
+
+### Use Cases
+
+* Displaying the connected wallet address in your UI
+* Checking if a user is connected before showing certain features
+* Getting user information for embedded wallets
+* Handling multi-chain scenarios where you need account info for specific chains
+
+<Note>
+  Related hooks: [useAppKitWallet](#useappkitwallet), [useDisconnect](#usedisconnect)
+</Note>
+
+Hook for accessing account data and connection status for each namespace when working in a multi-chain environment.
+
+```ts
+import { useAppKitAccount } from "@reown/appkit/react";
+
+const eip155Account = useAppKitAccount({ namespace: "eip155" }); // for EVM chains
+const solanaAccount = useAppKitAccount({ namespace: "solana" });
+const bip122Account = useAppKitAccount({ namespace: "bip122" }); // for bitcoin
+```
+
+### Returns
+
+* `allAccounts`: A list of connected accounts
+* `address`: The current account address
+* `caipAddress`: The current account address in CAIP format
+* `isConnected`: Boolean that indicates if the user is connected
+* `status`: The current connection status
+* `embeddedWalletInfo`: The current embedded wallet information
+
+```typescript
+type EmbeddedWalletInfo {
+  user: {
+    email?: string | null | undefined
+    username?: string | null | undefined
+  },
+  accountType: 'eoa' | 'smartAccount',
+  authProvider: 'google' | 'apple' | 'facebook' | 'x' | 'discord' | 'farcaster' | 'github' | 'email',
+  isSmartAccountDeployed: boolean
+}
+
+type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'reconnecting'
+
+type UseAppKitAccountReturnType = {
+  isConnected: boolean
+  allAccounts: Account[]
+  status?: ConnectionStatus
+  address?: string
+  caipAddress?: `${string}:${string}`
+  embeddedWalletInfo?: EmbeddedWalletInfo
+}
+```
+
+### Getting Bitcoin Public Keys
+
+When working with Bitcoin accounts, you can extract public keys from the connected accounts:
+
+```tsx
+import { useAppKitAccount } from "@reown/appkit/react";
+
+function BitcoinComponent() {
+  const { allAccounts } = useAppKitAccount({ chainNamespace: 'bip122' });
+  const publicKeys = allAccounts.map(acc => acc.publicKey);
+  
+  return (
+    <div>
+      {publicKeys.map((key, index) => (
+        <div key={index}>Public Key: {key}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+This is particularly useful when you need to access Bitcoin public keys for transaction signing or address derivation.
+
+## useAppKitWallet
+
+<Frame>
+  <img src="https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=4311e99e62b86393bba087f4d750f58f" width="1416" height="356" data-path="images/assets/walletButtons.jpg" srcset="https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?w=280&fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=0a26ae29a8a696be07b86c62286b44e7 280w, https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?w=560&fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=d91ff2d4dbf21f630c42b2c2f4927560 560w, https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?w=840&fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=be643bdc3020a5d61dabdb13d80a2673 840w, https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?w=1100&fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=f158003e40f0d4c946e25f7f0537bc0a 1100w, https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?w=1650&fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=4a06b3ea8602f07a87a58a393fbe954c 1650w, https://mintcdn.com/reown-5552f0bb/EKbxEvu_zecC7Jp2/images/assets/walletButtons.jpg?w=2500&fit=max&auto=format&n=EKbxEvu_zecC7Jp2&q=85&s=afe5cebcfd50d6b4cd874cfa9bf7beb1 2500w" data-optimize="true" data-opv="2" />
+</Frame>
+
+The direct wallet connection hook that enables connectivity to specific wallets without opening the modal. Use this hook when you want to provide direct wallet buttons, create a customized wallet selection interface, or implement social login options.
+
+Using the wallet button hooks ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR and also all the social logins.
+This hook allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
+Execute this command to install the library for use it:
+
+<CodeGroup>
+  ```bash npm
+  npm install @reown/appkit-wallet-button
+  ```
+
+  ```bash Yarn
+  yarn add @reown/appkit-wallet-button
+  ```
+
+  ```bash Bun
+  bun a @reown/appkit-wallet-button
+  ```
+
+  ```bash pnpm
+  pnpm add @reown/appkit-wallet-button
+  ```
+</CodeGroup>
+
+Then you have to import the hook in your project:
+
+```tsx
+import { useAppKitWallet } from "@reown/appkit-wallet-button/react";
+```
+
+And finally, you can use the hook in your project:
+
+```tsx
+const { isReady, isPending, connect } = useAppKitWallet({
+    namespace: 'eip155', // Optional: specify chain namespace
+    onSuccess(parsedCaipAddress) {
+      // Access the parsed CAIP address object
+      // See: https://github.com/reown-com/appkit/blob/main/packages/common/src/utils/ParseUtil.ts#L3-L7
+      // ...
+    },
+    onError(error) {
+      // ...
+    }
+  })
+
+...
+
+// Connect to WalletConnect
+<Button onClick={() => connect("walletConnect")} />
+```
+
+#### Options for the connect parameter
+
+AppKit supports the [top 32 wallets](https://github.com/reown-com/appkit/blob/main/packages/wallet-button/src/utils/ConstantsUtil.ts#L11-L44), WalletConnect, social logins, and email authentication:
+
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                   |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, and `tokenpocket` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                          |
+| Email         | `email`                                                                                                                                                                                                                                                                                                                                                           |
+
+#### Use Cases
+
+`useAppKitWallet` enables:
+
+1. **Direct Wallet Integration**
+   * Direct connection to specific wallets (e.g., MetaMask, Coinbase)
+   * Streamlined connection flow without modal
+
+2. **Social Authentication**
+   * Social login options (Google, GitHub, etc.)
+   * Email-based authentication
+
+3. **Custom Wallet Selection**
+   * Branded wallet selection interface
+   * Custom styling and filtering options
+
+4. **Network-Specific Access**
+   * Chain-specific wallet options
+   * Conditional wallet availability
+
+5. **Enhanced UX**
+   * Loading states and error handling
+   * Custom notifications
+   * Responsive connection states
+
+6. **Multichain Support**
+   * Connect to specific blockchain namespaces
+   * Target wallets for specific chains (EVM, Solana, Bitcoin)
+
+#### Multichain Examples
+
+```tsx
+// Connect to Ethereum/EVM chains
+const { connect: connectEVM } = useAppKitWallet({
+  namespace: 'eip155',
+  onSuccess: (address) => console.log('Connected to EVM:', address)
+})
+
+// Connect to Solana
+const { connect: connectSolana } = useAppKitWallet({
+  namespace: 'solana',
+  onSuccess: (address) => console.log('Connected to Solana:', address)
+})
+
+// Connect to Bitcoin
+const { connect: connectBitcoin } = useAppKitWallet({
+  namespace: 'bip122',
+  onSuccess: (address) => console.log('Connected to Bitcoin:', address)
+})
+
+// Usage
+<Button onClick={() => connectEVM("metamask")}>Connect MetaMask (EVM)</Button>
+<Button onClick={() => connectSolana("phantom")}>Connect Phantom (Solana)</Button>
+<Button onClick={() => connectBitcoin("leather")}>Connect Leather (Bitcoin)</Button>
+```
+
+#### Parameters
+
+* `namespace` (optional): The blockchain namespace to target. Supported values:
+  * `'eip155'` - Ethereum and EVM-compatible chains
+  * `'solana'` - Solana blockchain
+  * `'bip122'` - Bitcoin blockchain
+  * If not specified, uses the default namespace from your AppKit configuration
+
+## useAppKitNetwork
+
+The network management hook that provides access to chain information and network switching capabilities. Use this hook when you need to display the current network, switch between networks, or validate network compatibility.
+
+```ts
+import { useAppKitNetwork } from "@reown/appkit/react";
+
+export default Component(){
+  const { caipNetwork, caipNetworkId, chainId, switchNetwork } = useAppKitNetwork()
+}
+```
+
+### Use Cases
+
+* Displaying the current network/chain in your UI
+* Switching networks when a user selects a different chain
+* Validating if a user is on the correct network for your dApp
+* Handling network-specific features or contracts
+
+<Note>
+  Related hooks: [useAppKitBalance](#useappkitbalance), [useWalletInfo](#usewalletinfo)
+</Note>
+
+### Returns
+
+* `caipNetwork`: The current network object
+* `caipNetworkId`: The current network id in CAIP format
+* `chainId`: The current chain id
+* `switchNetwork`: Function to switch the network. Accepts a `caipNetwork` object as argument.
+
+<Note>
+  See how to import or use custom networks
+  [here](/appkit/next/core/custom-networks).
+</Note>
+
+## useAppKitBalance
+
+The balance management hook that provides functions to fetch the native token balance of the connected wallet. Use this hook when you need to display the user's balance, check if they have sufficient funds for a transaction, or track balance changes.
+
+```ts
+import { useAppKitBalance } from "@reown/appkit/react";
+
+function BalanceDisplay() {
+  const { fetchBalance } = useAppKitBalance();
+  const [balance, setBalance] = useState();
+  const { isConnected } = useAppKitAccount();
+  
+  useEffect(() => {
+    if (isConnected) {
+      fetchBalance().then(setBalance);
+    }
+  }, [isConnected, fetchBalance]);
+
+  return (
+    <div>
+      {balance && (
+        <p>Balance: {balance.data?.formatted} {balance.data?.symbol}</p>
+      )}
+    </div>
+  );
+}
+```
+
+### Use Cases
+
+* Displaying the user's wallet balance in your UI
+* Checking if a user has sufficient funds before initiating a transaction
+* Monitoring balance changes after transactions
+* Implementing balance-based features or UIs
+
+<Note>
+  Related hooks: [useAppKitAccount](#useappkitaccount), [useAppKitNetwork](#useappkitnetwork)
+</Note>
+
+### Returns
+
+* `fetchBalance`: Async function that returns the current balance of the connected wallet
+  ```ts
+  type BalanceResult = {
+    data?: {
+      formatted: string;
+      symbol: string;
+    };
+    error: string | null;
+    isSuccess: boolean;
+    isError: boolean;
+  }
+  ```
+
+## useAppKitState
+
+The state management hook that provides real-time access to the modal's current state. Use this hook when you need to react to modal state changes or synchronize your UI with the modal's status.
+
+```ts
+import { useAppKitState } from "@reown/appkit/react";
+
+const { 
+  initialized, 
+  loading, 
+  open, 
+  selectedNetworkId, 
+  activeChain 
+} = useAppKitState();
+```
+
+### Use Cases
+
+* Syncing your UI with the modal's open/closed state
+* Tracking which network the user has selected
+* Creating custom UI elements that respond to modal state changes
+* Implementing custom loading states based on modal state
+* Checking if AppKit has been fully initialized before rendering components
+* Displaying chain-specific UI based on the active blockchain namespace
+
+### Returns
+
+* `initialized`: Boolean that indicates if AppKit has been initialized. This sets to true when all controllers, adapters and internal state is ready
+* `loading`: Boolean that indicates if AppKit is loading
+* `open`: Boolean that indicates if the modal is open
+* `selectedNetworkId`: The current chain id selected by the user in CAIP-2 format
+* `activeChain`: The active chain namespace (e.g., 'eip155', 'solana', 'bip122')
+
+### Example Usage
+
+```tsx
+import { useAppKitState } from "@reown/appkit/react";
+
+function AppStatus() {
+  const { initialized, loading, open, selectedNetworkId, activeChain } = useAppKitState();
+
+  if (!initialized) {
+    return <div>Initializing AppKit...</div>;
+  }
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div>
+      <p>Modal is {open ? 'open' : 'closed'}</p>
+      <p>Selected Network: {selectedNetworkId}</p>
+      <p>Active Chain: {activeChain}</p>
+    </div>
+  );
+}
+```
+
+## useAppKitTheme
+
+The theming hook that controls the visual appearance of the modal. Use this hook when you need to customize the modal's colors, implement dark/light mode, or match the modal's appearance with your application's theme.
+
+```ts
+import { useAppKitTheme } from "@reown/appkit/react";
+const { themeMode, themeVariables, setThemeMode, setThemeVariables } =
+  useAppKitTheme();
+
+setThemeMode("dark");
+
+setThemeVariables({
+  "--w3m-color-mix": "#00BB7F",
+  "--w3m-color-mix-strength": 40,
+});
+```
+
+### Use Cases
+
+* Implementing dark/light mode in your dApp
+* Customizing the modal's appearance to match your brand
+* Creating theme-specific UI elements
+* Syncing the modal's theme with your app's theme
+
+## useAppKitEvents
+
+The event subscription hook that allows you to listen to modal and wallet events. Use this hook when you need to track user interactions, implement analytics, or respond to specific wallet events in your application.
+
+```ts
+import { useAppKitEvents } from "@reown/appkit/react";
+
+const events = useAppKitEvents();
+```
+
+### Use Cases
+
+* Tracking user interactions with the modal
+* Implementing analytics for wallet connections
+* Creating custom notifications for connection events
+* Handling specific wallet events in your application
+
+## useDisconnect
+
+The session management hook that handles wallet disconnection. Use this hook when implementing logout functionality or when you need to clean up resources after a user disconnects their wallet.
+
+```ts
+import { useDisconnect } from "@reown/appkit/react";
+
+const { disconnect } = useDisconnect();
+
+// Disconnect from all namespaces
+await disconnect();
+
+// Disconnect from specific namespace
+await disconnect({ namespace: 'eip155' }); // Disconnect from Ethereum
+await disconnect({ namespace: 'solana' }); // Disconnect from Solana  
+await disconnect({ namespace: 'bip122' }); // Disconnect from Bitcoin
+```
+
+### Parameters
+
+* `namespace` (optional): The specific chain namespace to disconnect from. If not provided, disconnects from all connected namespaces.
+
+### Use Cases
+
+* Implementing a "Disconnect Wallet" button
+* Handling logout flows in your application
+* Cleaning up resources when a user disconnects
+* Resetting application state after disconnection
+* Disconnecting from specific chains in multi-chain applications
+
+## useWalletInfo
+
+Hook for accessing wallet information.
+
+```tsx
+import { useWalletInfo } from '@reown/appkit/react'
+
+
+function WalletDisplay() {
+  const { walletInfo } = useWalletInfo();
+  
+  return (
+    <div className="wallet-info">
+      {walletInfo?.name && (
+        <>
+          <img src={walletInfo.icon} alt={walletInfo.name} />
+          <span>{walletInfo.name}</span>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+### Use Cases
+
+* Displaying wallet-specific information in your UI
+* Implementing wallet-specific features
+* Showing wallet icons or branding
+* Handling wallet-specific behaviors
+
+## useAppKitProvider
+
+Hook that returns the `walletProvider` and the `WalletProviderType` for interacting with the connected wallet across different blockchain adapters.
+
+```ts
+import { useAppKitProvider } from "@reown/appkit/react";
+import type { Provider } from "@reown/appkit/react";
+
+const { walletProvider } = useAppKitProvider<Provider>("eip155");
+```
+
+### Use Cases
+
+* Direct wallet interactions (signing messages, sending transactions)
+* Access to wallet-specific methods and properties
+* Integration with blockchain libraries (Ethers, Wagmi, Solana Web3.js)
+
+### Examples
+
+<Tabs>
+  <Tab title="EVM (eip155)">
+    ```tsx
+    import { useAppKitProvider } from "@reown/appkit/react";
+    import type { Provider } from "@reown/appkit/react";
+
+    const { walletProvider } = useAppKitProvider<Provider>("eip155");
+    ```
+  </Tab>
+
+  <Tab title="Solana">
+    ```tsx
+    import { useAppKitProvider } from "@reown/appkit/react";
+    import type { Provider } from "@reown/appkit-adapter-solana/react";
+
+    const { walletProvider } = useAppKitProvider<Provider>("solana");
+    ```
+  </Tab>
+
+  <Tab title="Bitcoin (bip122)">
+    ```tsx
+    import { useAppKitProvider } from "@reown/appkit/react";
+    import type { BitcoinConnector } from "@reown/appkit-adapter-bitcoin";
+
+    const { walletProvider } = useAppKitProvider<BitcoinConnector>("bip122");
+    ```
+  </Tab>
+</Tabs>
+
+### Returns
+
+* `walletProvider`: The wallet provider instance for the specified chain namespace
+* `walletProviderType`: The type of wallet provider currently connected
+
+## useAppKitConnections
+
+Hook that manages multiple wallet connections and provides access to all connected wallets. Use this hook when building applications that support multiple simultaneous wallet connections.
+
+```ts
+import { useAppKitConnections } from "@reown/appkit/next";
+
+const { connections, disconnect } = useAppKitConnections();
+```
+
+### Use Cases
+
+* Managing multiple wallet connections simultaneously
+* Building multi-wallet dashboards or portfolio views
+* Implementing wallet comparison features
+* Creating advanced wallet management interfaces
+
+### Returns
+
+* `connections`: Array of all connected wallet connections
+* `disconnect`: Function to disconnect a specific wallet connection
+
+<Note>
+  Related hooks: [useAppKitConnection](#useappkitconnection), [useAppKitAccount](#useappkitaccount)
+</Note>
+
+## useAppKitConnection
+
+Hook that manages the active wallet connection and provides connection switching capabilities. Use this hook when you need to work with the currently active connection or switch between multiple connections.
+
+```ts
+import { useAppKitConnection } from "@reown/appkit/next";
+
+const { connection, switchConnection } = useAppKitConnection();
+```
+
+### Use Cases
+
+* Switching between multiple connected wallets
+* Accessing the currently active wallet connection
+* Building connection management interfaces
+* Implementing wallet-specific features based on the active connection
+
+### Returns
+
+* `connection`: The currently active wallet connection
+* `switchConnection`: Function to switch to a different connected wallet
+
+<Note>
+  Related hooks: [useAppKitConnections](#useappkitconnections), [useAppKitAccount](#useappkitaccount)
+</Note>
+
+## usePay
+
+Hook that manages payment modal interactions and handles crypto payment flows. Use this hook when implementing payment features with exchange integrations.
+
+```ts
+import { usePay } from "@reown/appkit-pay/react";
+
+const { pay, isLoading, error } = usePay({
+  onSuccess: (result) => console.log('Payment successful:', result),
+  onError: (error) => console.error('Payment failed:', error)
+});
+```
+
+### Use Cases
+
+* Implementing crypto payment flows in your application
+* Handling payment success and error states
+* Integrating with centralized exchanges for payments
+* Building custom payment interfaces
+
+### Parameters
+
+* `onSuccess`: Optional callback function called when payment succeeds
+* `onError`: Optional callback function called when payment fails
+
+### Returns
+
+* `pay`: Function to initiate a payment with specified parameters
+* `isLoading`: Boolean indicating if a payment is in progress
+* `error`: Error object if payment fails
+
+<Note>
+  Related hooks: [useAvailableExchanges](#useavailableexchanges), [usePayUrlActions](#usepayurlactions)
+</Note>
+
+## useAvailableExchanges
+
+Hook that fetches and manages the state for available exchanges. Use this hook when you need to display available payment options or filter exchanges based on criteria.
+
+```ts
+import { useAvailableExchanges } from "@reown/appkit-pay/react";
+
+const { data, isLoading, error, fetch } = useAvailableExchanges({
+  isFetchOnInit: true,
+  asset: 'ETH',
+  amount: 100,
+  network: 'eip155:1'
+});
+```
+
+### Use Cases
+
+* Displaying available exchanges to users
+* Filtering exchanges based on asset or network
+* Building custom exchange selection interfaces
+* Implementing exchange comparison features
+
+### Parameters
+
+* `isFetchOnInit`: Whether to fetch exchanges on hook initialization
+* `asset`: Filter exchanges by specific asset
+* `amount`: Filter exchanges by minimum amount
+* `network`: Filter exchanges by network support
+
+### Returns
+
+* `data`: Array of available exchanges
+* `isLoading`: Boolean indicating if exchanges are being fetched
+* `error`: Error object if fetching fails
+* `fetch`: Function to manually refetch exchanges
+
+<Note>
+  Related hooks: [usePay](#usepay), [usePayUrlActions](#usepayurlactions)
+</Note>
+
+## usePayUrlActions
+
+Hook that provides functions to interact with specific exchange URLs, returning the sessionId needed for status tracking. Use this hook when implementing custom exchange flows.
+
+```ts
+import { usePayUrlActions } from "@reown/appkit-pay/react";
+
+const { getUrl, openUrl } = usePayUrlActions();
+
+// Get exchange URL
+const { url, sessionId } = await getUrl('binance', {
+  asset: 'ETH',
+  amount: 0.1,
+  recipient: '0x...'
+});
+
+// Open exchange URL in new tab
+const { url, sessionId } = await openUrl('coinbase', {
+  asset: 'USDC',
+  amount: 100,
+  recipient: '0x...'
+}, true);
+```
+
+### Use Cases
+
+* Building custom exchange integration flows
+* Implementing exchange URL generation
+* Creating custom payment interfaces
+* Tracking exchange sessions for status monitoring
+
+### Returns
+
+* `getUrl`: Function that returns exchange URL and session ID
+* `openUrl`: Function that opens exchange URL and returns session data
+
+<Note>
+  Related hooks: [useExchangeBuyStatus](#useexchangebuystatus), [useAvailableExchanges](#useavailableexchanges)
+</Note>
+
+## useExchangeBuyStatus
+
+Hook that fetches and polls for the status of a headless payment transaction using exchangeId and sessionId. Use this hook to track payment progress and handle completion.
+
+```ts
+import { useExchangeBuyStatus } from "@reown/appkit-pay/react";
+
+const { data, isLoading, error, refetch } = useExchangeBuyStatus({
+  exchangeId: 'binance',
+  sessionId: 'session-123',
+  pollingInterval: 5000,
+  isEnabled: true,
+  onSuccess: (status) => console.log('Payment completed:', status),
+  onError: (error) => console.error('Payment failed:', error)
+});
+```
+
+### Use Cases
+
+* Tracking payment transaction status
+* Implementing payment progress indicators
+* Handling payment completion and failure states
+* Building real-time payment monitoring
+
+### Parameters
+
+* `exchangeId`: The exchange identifier
+* `sessionId`: The session ID from payment URL actions
+* `pollingInterval`: How often to check status (in milliseconds)
+* `isEnabled`: Whether to enable status polling
+* `onSuccess`: Callback for successful payment completion
+* `onError`: Callback for payment errors
+
+### Returns
+
+* `data`: Current payment status data
+* `isLoading`: Boolean indicating if status is being fetched
+* `error`: Error object if status fetching fails
+* `refetch`: Function to manually refetch status
+
+<Note>
+  Related hooks: [usePayUrlActions](#usepayurlactions), [usePay](#usepay)
+</Note>
+
+## useAppKitUpdateEmail
+
+Hook that updates user email address with success and error handling. Use this hook when implementing email update functionality for user accounts.
+
+```ts
+import { useAppKitUpdateEmail } from "@reown/appkit/next";
+
+const { data, error, isPending, isError, isSuccess, updateEmail } = useAppKitUpdateEmail({
+  onSuccess: (data) => console.log('Email updated:', data.email),
+  onError: (error) => console.error('Update failed:', error)
+});
+```
+
+### Use Cases
+
+* Implementing email update functionality
+* Building user profile management interfaces
+* Handling email verification flows
+* Creating account settings pages
+
+### Parameters
+
+* `onSuccess`: Optional callback function called when email update succeeds
+* `onError`: Optional callback function called when email update fails
+
+### Returns
+
+* `data`: Updated email data object
+* `error`: Error object if update fails
+* `isPending`: Boolean indicating if update is in progress
+* `isError`: Boolean indicating if there was an error
+* `isSuccess`: Boolean indicating if update was successful
+* `updateEmail`: Function to trigger email update
+
+<Note>
+  Related hooks: [useAppKitAccount](#useappkitaccount), [useAppKitWallet](#useappkitwallet)
+</Note>
+
+## useAppKitSIWX
+
+Hook that provides access to Sign In With X (SIWX) configuration and state. Use this hook when implementing custom authentication flows with various blockchain protocols.
+
+```ts
+import { useAppKitSIWX } from "@reown/appkit/next";
+
+const siwxConfig = useAppKitSIWX();
+
+if (siwxConfig) {
+  console.log('SIWX enabled with config:', siwxConfig);
+}
+```
+
+### Use Cases
+
+* Implementing custom Sign In With X flows
+* Accessing SIWX configuration for custom authentication
+* Building protocol-specific authentication interfaces
+* Handling multi-protocol sign-in scenarios
+
+### Returns
+
+* `siwxConfig`: The current SIWX configuration object, or undefined if not configured
+
+<Note>
+  Related hooks: [useAppKitAccount](#useappkitaccount), [useAppKitUpdateEmail](#useappkitupdateemail)
+</Note>
+
+## useAppKitConnection (Solana)
+
+Solana-specific hook that provides access to the Solana connection instance for blockchain interactions. Use this hook when building Solana-specific features.
+
+```ts
+import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
+
+const { connection } = useAppKitConnection();
+
+if (connection) {
+  // Use connection for Solana blockchain interactions
+  const balance = await connection.getBalance(publicKey);
+}
+```
+
+### Use Cases
+
+* Accessing Solana connection for blockchain interactions
+* Building Solana-specific transaction flows
+* Implementing Solana program interactions
+* Creating Solana wallet features
+
+### Returns
+
+* `connection`: The Solana connection instance, or undefined if not connected
+
+<Note>
+  This is the Solana-specific version of useAppKitConnection. For general connection management, see [useAppKitConnection](#useappkitconnection).
+</Note>
+
+## Ethereum/Solana Library
+
+<Tabs>
+  <Tab title="Wagmi">
+    ### useAppKitAccount
+
+    Hook that returns the client's information.
+
+    ```tsx
+    import { useAppKitAccount } from "@reown/appkit/react";
+
+    function Components() {
+      const { address, caipAddress, isConnected } = useAppKitAccount();
+
+      //...
+    }
+    ```
+
+    ### useSignMessage
+
+    Hook for signing messages with connected account.
+
+    ```tsx
+    import { useSignMessage } from "wagmi";
+
+    function App() {
+      const { signMessage } = useSignMessage();
+
+      return (
+        <button onClick={() => signMessage({ message: "hello world" })}>
+          Sign message
+        </button>
+      );
+    }
+    ```
+
+    ### useAppKitProvider
+
+    Hook that returns the `walletProvider` and the `WalletProviderType`.
+
+    ```tsx
+    import { useAppKitProvider } from "@reown/appkit/react";
+    import type { Provider } from "@reown/appkit/react";
+
+    function Components() {
+      const { walletProvider } = useAppKitProvider<Provider>("eip155");
+
+      async function onSignMessage() {
+        console.log(walletProvider);
+      }
+
+      return <button onClick={() => onSignMessage()}>Sign Message</button>;
+    }
+    ```
+
+    <Card title="Learn More" href="https://wagmi.sh/react/hooks/useReadContract" />
+  </Tab>
+
+  <Tab title="Ethers">
+    ### useAppKitAccount
+
+    Hook that returns the client's information.
+
+    ```tsx
+    import { useAppKitAccount } from "@reown/appkit/react";
+
+    function Components() {
+      const { address, caipAddress, isConnected } = useAppKitAccount();
+
+      //...
+    }
+    ```
+
+    ### switchNetwork
+
+    ```tsx
+    import { createAppKit } from "@reown/appkit/react";
+    import { mainnet, arbitrum, polygon } from "@reown/appkit/networks";
+
+    const modal = createAppKit({
+      adapters: [wagmiAdapter],
+      projectId,
+      networks: [mainnet, arbitrum],
+      metadata: metadata,
+      features: {
+        analytics: true,
+      },
+    });
+
+    modal.switchNetwork(polygon);
+    ```
+
+    ### useAppKitProvider
+
+    Hook that returns the `walletProvider` and the `WalletProviderType`.
+
+    ```tsx
+    import { BrowserProvider } from "ethers";
+    import { useAppKitProvider } from "@reown/appkit/react";
+
+    function Components() {
+      const { walletProvider } = useAppKitProvider("eip155");
+
+      async function onSignMessage() {
+        const provider = new BrowserProvider(walletProvider);
+        const signer = await provider.getSigner();
+        const signature = await signer?.signMessage("Hello AppKit Ethers");
+        console.log(signature);
+      }
+
+      return <button onClick={() => onSignMessage()}>Sign Message</button>;
+    }
+    ```
+
+    ### getError
+
+    ```ts
+    function Components() {
+      const error = modal.getError();
+      //...
+    }
+    ```
+
+    <Card title="Learn More About Ethers" href="https://docs.ethers.org/v6/getting-started/#starting-blockchain" />
+  </Tab>
+
+  <Tab title="Ethers v5">
+    ### switchNetwork
+
+    ```tsx
+    import { createAppKit } from "@reown/appkit/react";
+    import { mainnet, arbitrum, polygon } from "@reown/appkit/networks";
+
+    const modal = createAppKit({
+      adapters: [wagmiAdapter],
+      projectId,
+      networks: [mainnet, arbitrum],
+      metadata: metadata,
+      features: {
+        analytics: true,
+      },
+    });
+
+    modal.switchNetwork(polygon);
+    ```
+
+    ### useAppKitProvider
+
+    Hook that returns the `walletProvider` and the `WalletProviderType`.
+
+    ```tsx
+    import {
+      useAppKitAccount,
+      useAppKitProvider,
+      useAppKitNetwork,
+    } from "@reown/appkit/react";
+    import { ethers } from "ethers";
+    import { useAppKitProvider } from "@reown/appkit/react";
+
+    function Components() {
+      const { walletProvider } = useAppKitProvider("eip155");
+      const { address } = useAppKitAccount();
+      const { chainId } = useAppKitNetwork();
+
+      async function onSignMessage() {
+        const provider = new ethers.providers.Web3Provider(walletProvider, chainId);
+        const signer = provider.getSigner(address);
+        const signature = await signer?.signMessage("Hello AppKit Ethers");
+        console.log(signature);
+      }
+
+      return <button onClick={() => onSignMessage()}>Sign Message</button>;
+    }
+    ```
+
+    ### getError
+
+    ```ts
+    function Components() {
+      const error = modal.getError();
+      //...
+    }
+    ```
+
+    <Card title="Learn More About Ethers" href="https://docs.ethers.org/v6/getting-started/#starting-blockchain" />
+  </Tab>
+
+  <Tab title="Solana">
+    ### useAppKitAccount
+
+    Hook that returns the client's information.
+
+    ```tsx
+    import { useAppKitAccount } from "@reown/appkit/react";
+
+    function Components() {
+      const { address, caipAddress, isConnected } = useAppKitAccount();
+
+      //...
+    }
+    ```
+
+    ### useAppKitProvider
+
+    Hook that returns the `walletProvider` and the `WalletProviderType`.
+
+    ```tsx
+    import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
+    import type { Provider } from "@reown/appkit-adapter-solana";
+
+    function SignMessage() {
+      // 0. Get account and provider
+      const { address } = useAppKitAccount();
+      const { walletProvider } = useAppKitProvider<Provider>("solana");
+
+      // 1. Create a function to sign a message
+      async function onSignMessage() {
+        try {
+          if (!walletProvider || !address) {
+            throw Error("user is disconnected");
+          }
+
+          // 2. Encode message and sign it
+          const encodedMessage = new TextEncoder().encode("Hello from AppKit");
+          const signature = await walletProvider.signMessage(encodedMessage);
+
+          console.log(signature);
+        } catch (err) {
+          // Handle Error Here
+        }
+      }
+
+      // 3. Create a button to trigger the function
+      return <button onClick={onSignMessage}>Sign Message</button>;
+    }
+    ```
+
+    ## useAppKitConnection
+
+    Hook that returns the connection object. More info about [Connection Class](https://solana-labs.github.io/solana-web3.js/classes/Connection.html)
+
+    ```tsx
+    import { useAppKitConnection } from '@reown/appkit-adapter-solana/react'
+
+    ...
+
+    const { connection } = useAppKitConnection()
+    ```
+  </Tab>
+
+  <Tab title="Bitcoin">
+    ### useAppKitAccount
+
+    Hook that returns the client's information.
+
+    ```tsx
+    import { useAppKitAccount } from "@reown/appkit/react";
+
+    const { address, status, isConnected } = useAppKitAccount();
+    ```
+
+    ### useAppKitProvider
+
+    Hook that returns the `walletProvider` and the `WalletProviderType`.
+
+    ```tsx
+    import { useAppKitProvider } from "@reown/appkit/react";
+    import type { BitcoinConnector } from "@reown/appkit-adapter-bitcoin";
+
+    function Components() {
+      const { walletProvider } = useAppKitProvider<BitcoinConnector>("bip122");
+
+      async function onSignMessage() {
+        if (!walletProvider) {
+          throw Error("user is disconnected");
+        }
+
+        const signature = await walletProvider.signMessage("Hello from AppKit");
+        console.log(signature);
+      }
+
+      return <button onClick={() => onSignMessage()}>Sign Message</button>;
+    }
+    ```
+
+    <Card title="Learn More About Bitcoin" href="https://developer.bitcoin.org/" />
+  </Tab>
+</Tabs>

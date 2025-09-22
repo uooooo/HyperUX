@@ -9,10 +9,15 @@ export default function KpiBar() {
     return () => clearTimeout(id);
   }, []);
   return (
-    <div className="flex items-center justify-between text-xs text-white/70">
-      <div>TTV: {ttv} ms</div>
-      <div>WS Reconnects: 0</div>
+    <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+      <div>
+        <span className="text-[var(--color-text-muted)]">TTV</span>
+        <span className="ml-2 font-mono text-[var(--color-text-primary)]">{ttv} ms</span>
+      </div>
+      <div>
+        <span className="text-[var(--color-text-muted)]">WS Reconnects</span>
+        <span className="ml-2 font-mono text-[var(--color-text-primary)]">0</span>
+      </div>
     </div>
   );
 }
-

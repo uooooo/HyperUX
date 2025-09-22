@@ -5,11 +5,11 @@
 `docs/product/requirements.md` #3 情報アーキテクチャ と #4 UI/UX 要件 でページ構成が定義されている。最小でも「入力 → UI 表示 → 発注準備」までを成立させ、動くデモを用意する必要がある。
 
 # やること
-- [ ] `/page.tsx` にチャット風 UI とサンプル DSL ジェネレータを実装する
-- [ ] `/t/[bundleHash]/page.tsx` で DSL を取得しレンダラー経由で表示、Hyperliquid データをバインドする
-- [ ] `/market/page.tsx` に登録済み UI (モック) の一覧と詳細モーダルを実装する
-- [ ] KPI ステータスバーを設置し、TTV や再接続回数を表示する
-- [ ] Tailwind v4 + shadcn で最低限のスタイルを整える
+- [x] `/page.tsx` にチャット風 UI とサンプル DSL ジェネレータを実装する（サンプル bundle 選択→ `/t/[bundleHash]` 遷移）
+- [x] `/t/[bundleHash]/page.tsx` で DSL を取得しレンダラー経由で表示する（リアルタイムデータ/注文処理は未実装、今後の Issue で対応）
+- [x] `/market/page.tsx` に登録済み UI (モック) の一覧を実装する（詳細モーダルは未実装、Preview リンクで代替）
+- [x] KPI ステータスバーを設置し、TTV や再接続回数を表示する（プレースホルダ値）
+- [x] Tailwind v4 + shadcn で最低限のスタイルを整える
 
 # 受入基準
 - 3 ページに遷移でき、エラーが発生しない

@@ -17,6 +17,11 @@ import {
   MetricGridComponent,
   SignalFeedComponent,
   DeltaExposureComponent,
+  ScalperDashboardComponent,
+  DcaDashboardComponent,
+  ArbitrageDashboardComponent,
+  UpbitSnipeDashboardComponent,
+  DeltaNeutralDashboardComponent,
 } from '@/lib/ui-dsl/types';
 
 import { BaseCard } from './base-card';
@@ -664,6 +669,385 @@ export function UnknownComponent({ componentId }: { componentId: string }) {
       <p className="text-xs text-[var(--color-text-muted)]">
         Component <code className="rounded bg-black/40 px-1 py-0.5">{componentId}</code> is not yet supported.
       </p>
+    </BaseCard>
+  );
+}
+
+export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent }) {
+  const {
+    title = 'Scalping Console',
+    prompt,
+    symbol,
+    price,
+    changePct,
+    timeframeOptions,
+    sliderSteps,
+    defaultAmountUsd,
+    longLabel = 'Long',
+    shortLabel = 'Short',
+    todaysPnlUsd,
+    positionsCount,
+    targetPct,
+  } = data;
+  const formattedSymbol = symbol.toUpperCase();
+  return (
+    <BaseCard title={title} subtitle={prompt}>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-4xl font-semibold text-[var(--color-text-primary)]">{formatUsd(price)}</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{formattedSymbol}</p>
+          </div>
+          <div className="text-right">
+            <TrendValue value={changePct} />
+            <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--color-text-muted)]">
+              {timeframeOptions.map((tf) => (
+                <span
+                  key={tf}
+                  className="rounded-full border border-[var(--color-border)] px-3 py-1"
+                >
+                  {tf}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-5 py-6">
+          <div className="flex h-20 items-end justify-between gap-3">
+            {sliderSteps.map((step, index) => (
+              <div key={`${step}-${index}`} className="flex flex-1 flex-col items-center gap-2">
+                <div
+                  className="w-1 rounded-full bg-[rgba(11,214,119,0.35)]"
+                  style={{ height: `${40 + (index % 2 === 0 ? 20 : 10)}px` }}
+                />
+                <span className="text-[10px] text-[var(--color-text-muted)]">{formatUsd(step)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[minmax(120px,1fr)_repeat(2,minmax(0,1fr))]">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm">
+            <SectionLabel>Amount</SectionLabel>
+            <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(defaultAmountUsd)}</p>
+          </div>
+          <button
+            type="button"
+            disabled
+            className="rounded-2xl border border-[rgba(11,214,119,0.4)] bg-[rgba(11,214,119,0.15)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-success)]"
+          >
+            {longLabel}
+          </button>
+          <button
+            type="button"
+            disabled
+            className="rounded-2xl border border-[rgba(255,90,95,0.45)] bg-[rgba(255,90,95,0.15)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-danger)]"
+          >
+            {shortLabel}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 text-xs text-[var(--color-text-muted)]">
+          <div>
+            <SectionLabel>Today&apos;s PnL</SectionLabel>
+            <p
+              className={
+                todaysPnlUsd && todaysPnlUsd > 0
+                  ? 'text-sm font-medium text-[var(--color-success)]'
+                  : todaysPnlUsd && todaysPnlUsd < 0
+                  ? 'text-sm font-medium text-[var(--color-danger)]'
+                  : 'text-sm font-medium text-[var(--color-text-primary)]'
+              }
+            >
+              {typeof todaysPnlUsd === 'number' ? formatUsd(todaysPnlUsd) : '—'}
+            </p>
+          </div>
+          <div>
+            <SectionLabel>Positions</SectionLabel>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">{positionsCount ?? 0}</p>
+          </div>
+          <div>
+            <SectionLabel>Target</SectionLabel>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              {typeof targetPct === 'number' ? `${targetPct.toFixed(1)}%` : '—'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </BaseCard>
+  );
+}
+
+export function DcaDashboardCard({ data }: { data: DcaDashboardComponent }) {
+  const {
+    title = 'Bitcoin Weekly DCA',
+    prompt,
+    symbol,
+    progressPct,
+    cycleBudgetUsd,
+    executedUsd,
+    nextPurchaseEta,
+    currentPrice,
+    avgCost,
+    totalAccumulated,
+  } = data;
+  return (
+    <BaseCard title={title} subtitle={prompt ?? `${symbol} accumulation`}>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+            <span>
+              {formatUsd(executedUsd)} / {formatUsd(cycleBudgetUsd)} this cycle
+            </span>
+            <span>{nextPurchaseEta ? `Next purchase in ${nextPurchaseEta}` : ''}</span>
+          </div>
+          <ProgressBar value={progressPct} />
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <SectionLabel>Current {symbol}</SectionLabel>
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{formatUsd(currentPrice)}</p>
+          </div>
+          <div>
+            <SectionLabel>Avg. Cost</SectionLabel>
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{formatUsd(avgCost)}</p>
+          </div>
+          <div>
+            <SectionLabel>Total {symbol}</SectionLabel>
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{totalAccumulated.toFixed(4)}</p>
+          </div>
+        </div>
+      </div>
+    </BaseCard>
+  );
+}
+
+export function ArbitrageDashboardCard({ data }: { data: ArbitrageDashboardComponent }) {
+  const {
+    title = 'Arbitrage Monitor',
+    prompt,
+    baseSymbol,
+    legs,
+    spreadBps,
+    targetBps,
+    estProfitUsd,
+    status,
+    executionEtaSeconds,
+    history,
+    actionLabel = 'Execute Arbitrage',
+  } = data;
+  return (
+    <BaseCard title={title} subtitle={prompt ?? `${baseSymbol} cross-venue spread`}>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <SectionLabel>Current Spread</SectionLabel>
+            <p className="text-3xl font-semibold text-[var(--color-text-primary)]">{formatNumber(spreadBps, 1)} bps</p>
+            {typeof targetBps === 'number' ? (
+              <p className="text-xs text-[var(--color-text-muted)]">Target {formatNumber(targetBps, 1)} bps</p>
+            ) : null}
+          </div>
+          <span
+            className={`rounded-full px-4 py-1 text-xs uppercase tracking-[0.3em] ${
+              status === 'paused'
+                ? 'border border-[rgba(255,90,95,0.35)] text-[var(--color-danger)]'
+                : 'border border-[rgba(11,214,119,0.4)] text-[var(--color-success)]'
+            }`}
+          >
+            {status === 'paused' ? 'Paused' : 'Live'}
+          </span>
+        </div>
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]">
+          {legs.map((leg) => (
+            <div
+              key={`${leg.venue}-${leg.market}`}
+              className="flex items-center justify-between border-b border-[rgba(28,227,181,0.05)] px-4 py-3 text-sm last:border-b-0"
+            >
+              <div>
+                <p className="text-[var(--color-text-primary)]">{leg.venue}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{leg.market}</p>
+              </div>
+              <p className="text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(leg.price)}</p>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-4 text-sm text-[var(--color-text-muted)]">
+          <div>
+            <SectionLabel>Estimated Profit</SectionLabel>
+            <p className="text-lg font-semibold text-[var(--color-text-primary)]">
+              {typeof estProfitUsd === 'number' ? formatUsd(estProfitUsd) : '—'}
+            </p>
+          </div>
+          <div>
+            <SectionLabel>Execution ETA</SectionLabel>
+            <p className="text-lg font-semibold text-[var(--color-text-primary)]">
+              {typeof executionEtaSeconds === 'number' ? `${executionEtaSeconds.toFixed(1)}s` : '—'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled
+          className="rounded-full border border-[var(--color-border)] bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-black"
+        >
+          {actionLabel}
+        </button>
+        {history && history.length ? (
+          <div className="text-xs text-[var(--color-text-muted)]">
+            <SectionLabel>Past 24h</SectionLabel>
+            <ul className="mt-2 space-y-1">
+              {history.map((item) => (
+                <li key={item.symbol} className="flex items-center justify-between">
+                  <span>{item.symbol}</span>
+                  <TrendValue value={item.changePct / 100} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </BaseCard>
+  );
+}
+
+export function UpbitSnipeDashboardCard({ data }: { data: UpbitSnipeDashboardComponent }) {
+  const {
+    title = 'Upbit Snipe Long',
+    prompt,
+    tokenSymbol,
+    tokenPrice,
+    positionSizeUsd,
+    positionTokenAmount,
+    marketCapUsd,
+    marketCapChangePct,
+    fdvUsd,
+    mcFdvRatio,
+    autoExecuteEta,
+    feedItems,
+    actionLabel = 'Snipe Long Now',
+  } = data;
+  return (
+    <BaseCard title={title} subtitle={prompt}>
+      <div className="grid gap-6 lg:grid-cols-[0.6fr_0.4fr]">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-5 py-4 text-sm">
+            <div>
+              <SectionLabel>Detected Token</SectionLabel>
+              <p className="text-lg font-semibold text-[var(--color-text-primary)]">{tokenSymbol}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{tokenPrice}</p>
+            </div>
+            <div className="text-right">
+              <SectionLabel>Position Size</SectionLabel>
+              <p className="text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(positionSizeUsd)}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{positionTokenAmount}</p>
+            </div>
+            <div>
+              <SectionLabel>Market Cap</SectionLabel>
+              <p className="text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(marketCapUsd)}</p>
+              <TrendValue value={marketCapChangePct ? marketCapChangePct / 100 : undefined} />
+            </div>
+            <div className="text-right">
+              <SectionLabel>FDV</SectionLabel>
+              <p className="text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(fdvUsd)}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">MC/FDV {mcFdvRatio?.toFixed(2)}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled
+            className="w-full rounded-full border border-[var(--color-border)] bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-black"
+          >
+            {actionLabel}
+          </button>
+          {autoExecuteEta ? (
+            <p className="text-xs text-[var(--color-text-muted)]">Auto-execute in {autoExecuteEta} if confidence &gt; 85%</p>
+          ) : null}
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+            <SectionLabel>Twitter Feed</SectionLabel>
+            <span className="flex items-center gap-2 text-[var(--color-success)]">● Live</span>
+          </div>
+          <div className="space-y-3">
+            {feedItems.map((item, index) => (
+              <div key={`${item.source}-${index}`} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-[var(--color-text-primary)]">{item.source}</span>
+                  <span className="text-xs text-[var(--color-text-muted)]">{item.timestamp ?? 'now'}</span>
+                </div>
+                <p className="mt-1 text-[var(--color-text-secondary)]">{item.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </BaseCard>
+  );
+}
+
+export function DeltaNeutralDashboardCard({ data }: { data: DeltaNeutralDashboardComponent }) {
+  const {
+    title = 'Delta Neutral',
+    prompt,
+    spotSymbol,
+    spotQty,
+    spotValueUsd,
+    futuresSymbol,
+    futuresQty,
+    futuresValueUsd,
+    delta,
+    fundingApr,
+    dailyPnlUsd,
+    nextRebalanceEta,
+  } = data;
+  const deltaPct = delta * 100;
+  const neutralness = Math.max(0, Math.min(100, 100 - Math.abs(deltaPct)));
+  return (
+    <BaseCard title={title} subtitle={prompt ?? 'Market neutral hedging strategy'}>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <SectionLabel>Spot Position</SectionLabel>
+            <p className="text-lg font-semibold text-[var(--color-text-primary)]">
+              {spotQty > 0 ? '+' : ''}
+              {spotQty.toFixed(2)} {spotSymbol.toUpperCase()}
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">{formatUsd(spotValueUsd)}</p>
+          </div>
+          <div className="text-right">
+            <SectionLabel>Futures Position</SectionLabel>
+            <p className="text-lg font-semibold text-[var(--color-text-primary)]">
+              {futuresQty > 0 ? '+' : ''}
+              {futuresQty.toFixed(2)} {futuresSymbol.toUpperCase()}
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">{formatUsd(futuresValueUsd)}</p>
+          </div>
+        </div>
+        <div>
+          <SectionLabel>Delta Exposure</SectionLabel>
+          <div className="mt-2 h-3 rounded-full bg-[rgba(0,184,148,0.12)]">
+            <div className="h-full rounded-full bg-[var(--color-accent)]" style={{ width: `${neutralness}%` }} />
+          </div>
+          <p className="mt-2 text-sm text-[var(--color-text-primary)]">Delta {delta.toFixed(2)} ({neutralness.toFixed(0)}% neutral)</p>
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-sm text-[var(--color-text-muted)]">
+          <div>
+            <SectionLabel>Funding APR</SectionLabel>
+            <TrendValue value={fundingApr} />
+          </div>
+          <div>
+            <SectionLabel>Daily PnL</SectionLabel>
+            <p className={dailyPnlUsd && dailyPnlUsd > 0 ? 'text-sm font-medium text-[var(--color-success)]' : dailyPnlUsd && dailyPnlUsd < 0 ? 'text-sm font-medium text-[var(--color-danger)]' : 'text-sm font-medium text-[var(--color-text-primary)]'}>
+              {typeof dailyPnlUsd === 'number' ? formatUsd(dailyPnlUsd) : '—'}
+            </p>
+          </div>
+          <div>
+            <SectionLabel>Next Rebalance</SectionLabel>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">{nextRebalanceEta ?? '—'}</p>
+          </div>
+        </div>
+      </div>
     </BaseCard>
   );
 }

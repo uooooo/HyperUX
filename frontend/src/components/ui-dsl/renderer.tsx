@@ -3,9 +3,12 @@ import { uiDslSchema } from '@/lib/ui-dsl/schema';
 import type { UiComponent, UiDsl } from '@/lib/ui-dsl/types';
 import {
   AlertsCard,
+  ArbitrageDashboardCard,
   ChartPlaceholder,
+  DcaDashboardCard,
   DcaScheduleCard,
   DeltaExposureCard,
+  DeltaNeutralDashboardCard,
   FundingCard,
   HedgeCard,
   MetricGridCard,
@@ -15,10 +18,12 @@ import {
   PriceTickerCard,
   QuickActionsCard,
   RiskCard,
+  ScalperDashboardCard,
   SignalFeedCard,
   SpreadCard,
   StrategyNotesCard,
   UnknownComponent,
+  UpbitSnipeDashboardCard,
 } from './cards';
 
 const layoutGap = 'gap-4';
@@ -103,6 +108,16 @@ function ComponentRenderer({ component, componentId }: ComponentRendererProps) {
       return <SignalFeedCard data={component} />;
     case 'DeltaExposure':
       return <DeltaExposureCard data={component} />;
+    case 'ScalperDashboard':
+      return <ScalperDashboardCard data={component} />;
+    case 'DcaDashboard':
+      return <DcaDashboardCard data={component} />;
+    case 'ArbitrageDashboard':
+      return <ArbitrageDashboardCard data={component} />;
+    case 'UpbitSnipeDashboard':
+      return <UpbitSnipeDashboardCard data={component} />;
+    case 'DeltaNeutralDashboard':
+      return <DeltaNeutralDashboardCard data={component} />;
     default:
       return <UnknownComponent componentId={componentId} />;
   }

@@ -19,6 +19,11 @@ import {
   metricGridComponentSchema,
   signalFeedComponentSchema,
   deltaExposureComponentSchema,
+  scalperDashboardComponentSchema,
+  dcaDashboardComponentSchema,
+  arbitrageDashboardComponentSchema,
+  upbitSnipeDashboardComponentSchema,
+  deltaNeutralDashboardComponentSchema,
 } from './schema';
 
 export type Persona = z.infer<typeof personaSchema>;
@@ -41,6 +46,11 @@ export type StrategyNotesComponent = z.infer<typeof strategyNotesComponentSchema
 export type MetricGridComponent = z.infer<typeof metricGridComponentSchema>;
 export type SignalFeedComponent = z.infer<typeof signalFeedComponentSchema>;
 export type DeltaExposureComponent = z.infer<typeof deltaExposureComponentSchema>;
+export type ScalperDashboardComponent = z.infer<typeof scalperDashboardComponentSchema>;
+export type DcaDashboardComponent = z.infer<typeof dcaDashboardComponentSchema>;
+export type ArbitrageDashboardComponent = z.infer<typeof arbitrageDashboardComponentSchema>;
+export type UpbitSnipeDashboardComponent = z.infer<typeof upbitSnipeDashboardComponentSchema>;
+export type DeltaNeutralDashboardComponent = z.infer<typeof deltaNeutralDashboardComponentSchema>;
 
 export type ComponentOfType<TType extends UiComponent['type']> = Extract<
   UiComponent,

@@ -289,6 +289,92 @@ export const deltaExposureComponentSchema = baseComponentSchema.extend({
   nextRebalanceEta: z.string().optional(),
 });
 
+export const scalperDashboardComponentSchema = baseComponentSchema.extend({
+  type: z.literal('ScalperDashboard'),
+  prompt: z.string().optional(),
+  symbol: z.string(),
+  price: z.number().positive(),
+  changePct: z.number(),
+  timeframeOptions: z.array(z.string()).min(1).max(5),
+  sliderSteps: z.array(z.number().positive()).min(3).max(10),
+  defaultAmountUsd: z.number().positive(),
+  longLabel: z.string().optional(),
+  shortLabel: z.string().optional(),
+  todaysPnlUsd: z.number().optional(),
+  positionsCount: z.number().int().nonnegative().optional(),
+  targetPct: z.number().optional(),
+});
+
+export const dcaDashboardComponentSchema = baseComponentSchema.extend({
+  type: z.literal('DcaDashboard'),
+  prompt: z.string().optional(),
+  symbol: z.string().default('BTC'),
+  progressPct: z.number().min(0).max(100),
+  cycleBudgetUsd: z.number().positive(),
+  executedUsd: z.number().nonnegative(),
+  nextPurchaseEta: z.string().optional(),
+  currentPrice: z.number().positive(),
+  avgCost: z.number().positive(),
+  totalAccumulated: z.number().nonnegative(),
+});
+
+const arbitrageLegSchema = z.object({
+  venue: z.string(),
+  market: z.string(),
+  price: z.number().positive(),
+});
+
+const arbitrageHistorySchema = z.object({
+  symbol: z.string(),
+  changePct: z.number(),
+  timestamp: z.string().optional(),
+});
+
+export const arbitrageDashboardComponentSchema = baseComponentSchema.extend({
+  type: z.literal('ArbitrageDashboard'),
+  prompt: z.string().optional(),
+  baseSymbol: z.string(),
+  legs: z.array(arbitrageLegSchema).min(2).max(3),
+  spreadBps: z.number(),
+  targetBps: z.number().optional(),
+  estProfitUsd: z.number().optional(),
+  status: z.enum(['live', 'paused']).optional(),
+  executionEtaSeconds: z.number().optional(),
+  history: z.array(arbitrageHistorySchema).optional(),
+  actionLabel: z.string().optional(),
+});
+
+export const upbitSnipeDashboardComponentSchema = baseComponentSchema.extend({
+  type: z.literal('UpbitSnipeDashboard'),
+  prompt: z.string().optional(),
+  tokenSymbol: z.string(),
+  tokenPrice: z.number().positive(),
+  positionSizeUsd: z.number().positive(),
+  positionTokenAmount: z.string().optional(),
+  marketCapUsd: z.number().positive(),
+  marketCapChangePct: z.number().optional(),
+  fdvUsd: z.number().positive(),
+  mcFdvRatio: z.number().optional(),
+  autoExecuteEta: z.string().optional(),
+  feedItems: z.array(signalFeedItemSchema).min(1),
+  actionLabel: z.string().optional(),
+});
+
+export const deltaNeutralDashboardComponentSchema = baseComponentSchema.extend({
+  type: z.literal('DeltaNeutralDashboard'),
+  prompt: z.string().optional(),
+  spotSymbol: z.string(),
+  spotQty: z.number(),
+  spotValueUsd: z.number(),
+  futuresSymbol: z.string(),
+  futuresQty: z.number(),
+  futuresValueUsd: z.number(),
+  delta: z.number(),
+  fundingApr: z.number().optional(),
+  dailyPnlUsd: z.number().optional(),
+  nextRebalanceEta: z.string().optional(),
+});
+
 export const componentSchema = z.discriminatedUnion('type', [
   orderPanelComponentSchema,
   riskCardComponentSchema,
@@ -306,6 +392,11 @@ export const componentSchema = z.discriminatedUnion('type', [
   metricGridComponentSchema,
   signalFeedComponentSchema,
   deltaExposureComponentSchema,
+  scalperDashboardComponentSchema,
+  dcaDashboardComponentSchema,
+  arbitrageDashboardComponentSchema,
+  upbitSnipeDashboardComponentSchema,
+  deltaNeutralDashboardComponentSchema,
 ]);
 
 export const uiDslSchema = z

@@ -1,0 +1,62 @@
+### Hyperliquid Testnet order (adjust values before running)
+# @name placeOrder
+POST http://localhost:3000/api/order
+Content-Type: application/json
+x-bundle-hash: demo
+x-wallet-address: 0x71Abf3ecdEd1902D521C1b9141BA1D961042D68E
+x-idempotency-key: order-1002
+
+{
+  "orders": [
+    {
+      "market": "BTC-PERP",
+      "side": "buy",
+      "sizeUsd": 50,
+      "price": 115349,
+      "timeInForce": "Gtc",
+      "reduceOnly": false,
+      "clientId": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "grouping": "na"
+}
+
+### Replaying the same idempotency key should reuse cached response
+# @name replayOrder
+POST http://localhost:3000/api/order
+Content-Type: application/json
+x-bundle-hash: demo
+x-wallet-address: 0x71Abf3ecdEd1902D521C1b9141BA1D961042D68E
+x-idempotency-key: order-1002
+
+{
+  "orders": [
+    {
+      "market": "BTC-PERP",
+      "side": "buy",
+      "sizeUsd": 50,
+      "price": 115349,
+      "timeInForce": "Gtc"
+    }
+  ],
+  "grouping": "na"
+}
+
+### Example invalid request (missing price)
+# @name invalidOrder
+POST http://localhost:3000/api/order
+Content-Type: application/json
+x-bundle-hash: demo
+x-wallet-address: 0x71Abf3ecdEd1902D521C1b9141BA1D961042D68E
+x-idempotency-key: order-0022
+
+{
+  "orders": [
+    {
+      "market": "BTC-PERP",
+      "side": "buy",
+      "sizeUsd": 50
+    }
+  ],
+  "grouping": "na"
+}

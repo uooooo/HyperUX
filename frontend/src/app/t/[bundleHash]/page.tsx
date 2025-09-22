@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import UiDslRenderer from '@/components/ui-dsl/renderer';
+import KpiBar from '@/components/kpi-bar';
 import { sampleBundles } from '@/lib/ui-dsl/samples';
 
 interface PageProps {
@@ -39,8 +40,11 @@ export default function BundlePreviewPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-16 text-white/80">
-      <header className="space-y-2">
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-8 text-white/80">
+      <header className="sticky top-0 z-10 -mx-6 mb-4 border-b border-white/10 bg-black/60 px-6 py-3 backdrop-blur">
+        <KpiBar />
+      </header>
+      <header className="space-y-2 mt-4">
         <p className="text-xs uppercase tracking-wide text-white/50">Persona · {dsl.persona}</p>
         <h1 className="text-3xl font-semibold text-white">{dsl.name}</h1>
         {dsl.description ? <p className="text-sm text-white/60">{dsl.description}</p> : null}

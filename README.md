@@ -2,6 +2,8 @@
 
 HyperUX turns natural-language trading prompts into tailor-made Hyperliquid frontends. The current hackathon build wires up the page scaffolds and the server order relay.
 
+• Hackathon Submission (JA): see `docs/hackathon/submission-ja.md`
+
 ## Current Footprint (Issue #6)
 
 - `/` &mdash; Prompt form + sample bundle selector → routes to `/t/[bundleHash]`.

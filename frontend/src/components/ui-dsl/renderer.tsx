@@ -1,3 +1,5 @@
+"use client";
+
 import type { CSSProperties } from 'react';
 import { uiDslSchema } from '@/lib/ui-dsl/schema';
 import type { UiComponent, UiDsl } from '@/lib/ui-dsl/types';

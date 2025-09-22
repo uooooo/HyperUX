@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import type { AllMids, PerpsClearinghouseState } from '@nktkas/hyperliquid';
 
@@ -15,6 +15,7 @@ import {
   type FundingSnapshot,
 } from './service';
 import { subscribeAllMids } from './ws-manager';
+import { normalizePerpMarketSymbol } from './utils';
 
 const allMidsKey = (dex: string) => ['hyperliquid', 'allMids', dex] as const;
 type AllMidsKey = ReturnType<typeof allMidsKey>;
@@ -119,4 +120,28 @@ export function useClearinghouseState(user: string | null, options?: UseClearing
     refetchOnWindowFocus: false,
     ...options,
   });
+}
+
+export function useHyperliquidPerpMetrics(symbol?: string | null) {
+  const normalized = useMemo(() => (symbol ? normalizePerpMarketSymbol(symbol) : undefined), [symbol]);
+  const { data: mids } = useHyperliquidAllMids({ enabled: Boolean(normalized) });
+  const { data: assets } = usePerpAssetContexts({ enabled: Boolean(normalized) });
+
+  if (!normalized) {
+    return { market: undefined, asset: undefined, price: undefined, markPrice: undefined, midPrice: undefined };
+  }
+
+  const asset = assets?.[normalized];
+  const midValue = mids?.[normalized];
+  const midPrice = typeof midValue === 'string' ? Number(midValue) : undefined;
+  const markPrice = asset?.markPrice ?? undefined;
+  const price = typeof markPrice === 'number' && !Number.isNaN(markPrice) ? markPrice : midPrice;
+
+  return {
+    market: normalized,
+    asset,
+    price,
+    markPrice,
+    midPrice,
+  };
 }

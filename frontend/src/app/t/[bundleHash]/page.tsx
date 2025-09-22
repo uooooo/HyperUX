@@ -4,6 +4,8 @@ import UiDslRenderer from '@/components/ui-dsl/renderer';
 import KpiBar from '@/components/kpi-bar';
 import { sampleBundles } from '@/lib/ui-dsl/samples';
 
+import { TradeBundleProvider } from '@/context/trade-bundle';
+
 interface PageProps {
   params: { bundleHash: string };
 }
@@ -39,22 +41,24 @@ export default function BundlePreviewPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-72px)] max-w-6xl flex-col gap-10 px-6 py-10 text-[var(--color-text-secondary)]">
-      <header className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs uppercase tracking-[0.4em] text-[var(--color-text-muted)]">Persona · {dsl.persona}</p>
-          <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
-            <h1 className="text-3xl font-semibold text-[var(--color-text-primary)]">{dsl.name}</h1>
-            {dsl.description ? <p className="max-w-xl text-sm text-[var(--color-text-secondary)]">{dsl.description}</p> : null}
+    <TradeBundleProvider bundleHash={params.bundleHash}>
+      <main className="mx-auto flex min-h-[calc(100vh-72px)] max-w-6xl flex-col gap-10 px-6 py-10 text-[var(--color-text-secondary)]">
+        <header className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs uppercase tracking-[0.4em] text-[var(--color-text-muted)]">Persona · {dsl.persona}</p>
+            <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+              <h1 className="text-3xl font-semibold text-[var(--color-text-primary)]">{dsl.name}</h1>
+              {dsl.description ? <p className="max-w-xl text-sm text-[var(--color-text-secondary)]">{dsl.description}</p> : null}
+            </div>
           </div>
-        </div>
-        <div className="rounded-3xl border border-[var(--color-border)] bg-[rgba(4,20,17,0.75)] px-6 py-4 shadow-[var(--shadow-card)]">
-          <KpiBar />
-        </div>
-      </header>
-      <section className="space-y-6">
-        <UiDslRenderer dsl={dsl} />
-      </section>
-    </main>
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[rgba(4,20,17,0.75)] px-6 py-4 shadow-[var(--shadow-card)]">
+            <KpiBar />
+          </div>
+        </header>
+        <section className="space-y-6">
+          <UiDslRenderer dsl={dsl} />
+        </section>
+      </main>
+    </TradeBundleProvider>
   );
 }

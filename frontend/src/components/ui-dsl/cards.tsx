@@ -1,4 +1,13 @@
+"use client";
+
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useAccount } from 'wagmi';
+
+import { usePlaceOrder } from '@/hooks/use-place-order';
+import { useRedstonePrice } from '@/hooks/use-redstone-price';
+import { useHyperliquidPerpMetrics } from '@/lib/hyperliquid/hooks';
+import { normalizePerpMarketSymbol } from '@/lib/hyperliquid/utils';
 
 import {
   OrderPanelComponent,
@@ -691,17 +700,84 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
     positionsCount,
     targetPct,
   } = data;
+
+  const sliderValues = sliderSteps ?? [];
+  const initialAmount = defaultAmountUsd ?? (sliderValues[0] ?? 0);
+  const [selectedAmount, setSelectedAmount] = useState(initialAmount);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    setSelectedAmount(initialAmount);
+  }, [initialAmount]);
+
+  useEffect(() => {
+    if (!statusMessage) return;
+    const timeout = window.setTimeout(() => setStatusMessage(null), 4_000);
+    return () => window.clearTimeout(timeout);
+  }, [statusMessage]);
+
+  const metrics = useHyperliquidPerpMetrics(symbol);
+  const market = useMemo(() => metrics.market ?? normalizePerpMarketSymbol(symbol), [metrics.market, symbol]);
+  const referencePrice = useMemo(() => metrics.price ?? price, [metrics.price, price]);
+  const priceDelta = useMemo(() => {
+    if (typeof metrics.price === 'number' && price > 0) {
+      const delta = (metrics.price - price) / price;
+      if (!Number.isNaN(delta) && Number.isFinite(delta)) {
+        return delta;
+      }
+    }
+    return changePct ?? null;
+  }, [metrics.price, price, changePct]);
+
+  const displayPrice = referencePrice ?? price;
   const formattedSymbol = symbol.toUpperCase();
+
+  const { mutateAsync: placeOrder, isPending } = usePlaceOrder();
+  const { address } = useAccount();
+
+  const disabledReason = useMemo(() => {
+    if (!address) return 'Connect wallet to trade';
+    if (!market) return 'Market not supported';
+    if (!(referencePrice && referencePrice > 0)) return 'Live price unavailable';
+    if (selectedAmount < 5) return 'Order size must be at least $5';
+    return null;
+  }, [address, market, referencePrice, selectedAmount]);
+
+  const handleOrder = async (side: 'buy' | 'sell') => {
+    if (disabledReason) {
+      setStatusMessage({ type: 'error', text: disabledReason });
+      return;
+    }
+    try {
+      setStatusMessage(null);
+      await placeOrder({
+        market,
+        side,
+        price: referencePrice!,
+        sizeUsd: selectedAmount,
+        timeInForce: 'Ioc',
+      });
+      setStatusMessage({ type: 'success', text: `${side === 'buy' ? longLabel : shortLabel} order submitted` });
+    } catch (error) {
+      setStatusMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Order request failed',
+      });
+    }
+  };
+
+  const actionDisabled = Boolean(disabledReason) || isPending;
+
   return (
     <BaseCard title={title} subtitle={prompt}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-4xl font-semibold text-[var(--color-text-primary)]">{formatUsd(price)}</p>
+            <p className="text-4xl font-semibold text-[var(--color-text-primary)]">{formatUsd(displayPrice)}</p>
             <p className="text-sm text-[var(--color-text-muted)]">{formattedSymbol}</p>
           </div>
           <div className="text-right">
-            <TrendValue value={changePct} />
+            <TrendValue value={priceDelta} />
             <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--color-text-muted)]">
               {timeframeOptions.map((tf) => (
                 <span key={tf} className="rounded-full border border-[var(--color-border)] px-3 py-1">
@@ -715,15 +791,28 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
         <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-5 py-6">
           <div className="mb-4 h-20 rounded-2xl border border-[rgba(11,214,119,0.18)] bg-gradient-to-br from-[rgba(11,214,119,0.08)] to-transparent" />
           <div className="flex h-16 items-end justify-between gap-3">
-            {sliderSteps.map((step, index) => (
-              <div key={`${step}-${index}`} className="flex flex-1 flex-col items-center gap-2">
-                <div
-                  className="w-1 rounded-full bg-[rgba(11,214,119,0.4)]"
-                  style={{ height: `${32 + (index % 3 === 0 ? 18 : index % 2 === 0 ? 10 : 6)}px` }}
-                />
-                <span className="text-[10px] text-[var(--color-text-muted)]">{formatUsd(step)}</span>
-              </div>
-            ))}
+            {sliderValues.map((step, index) => {
+              const active = step === selectedAmount;
+              return (
+                <button
+                  key={`${step}-${index}`}
+                  type="button"
+                  onClick={() => setSelectedAmount(step)}
+                  disabled={isPending}
+                  className={`flex flex-1 flex-col items-center gap-2 transition ${
+                    active ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'
+                  }`}
+                >
+                  <div
+                    className={`w-1 rounded-full ${
+                      active ? 'bg-[var(--color-accent)]' : 'bg-[rgba(11,214,119,0.4)]'
+                    }`}
+                    style={{ height: `${32 + (index % 3 === 0 ? 18 : index % 2 === 0 ? 10 : 6)}px` }}
+                  />
+                  <span className="text-[10px]">{formatUsd(step)}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -732,7 +821,7 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
             <SectionLabel>{amountLabel}</SectionLabel>
             <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
               <span className="text-[var(--color-text-muted)]">$</span>
-              <span className="font-mono text-[var(--color-text-primary)]">{defaultAmountUsd.toFixed(0)}</span>
+              <span className="font-mono text-[var(--color-text-primary)]">{selectedAmount.toFixed(0)}</span>
               <span className="flex-1 text-right text-[10px] text-[var(--color-text-muted)]">
                 {inputPlaceholder ?? 'USD'}
               </span>
@@ -740,19 +829,41 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
           </div>
           <button
             type="button"
-            disabled
-            className="rounded-2xl border border-[rgba(11,214,119,0.4)] bg-[rgba(11,214,119,0.2)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-success)]"
+            onClick={() => handleOrder('buy')}
+            disabled={actionDisabled}
+            className={`rounded-2xl border border-[rgba(11,214,119,0.4)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.3em] ${
+              actionDisabled
+                ? 'cursor-not-allowed bg-[rgba(11,214,119,0.05)] text-[var(--color-text-muted)] opacity-60'
+                : 'bg-[rgba(11,214,119,0.2)] text-[var(--color-success)]'
+            }`}
           >
-            {longLabel}
+            {isPending ? 'Submitting…' : longLabel}
           </button>
           <button
             type="button"
-            disabled
-            className="rounded-2xl border border-[rgba(255,90,95,0.45)] bg-[rgba(255,90,95,0.2)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-danger)]"
+            onClick={() => handleOrder('sell')}
+            disabled={actionDisabled}
+            className={`rounded-2xl border border-[rgba(255,90,95,0.45)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.3em] ${
+              actionDisabled
+                ? 'cursor-not-allowed bg-[rgba(255,90,95,0.08)] text-[var(--color-text-muted)] opacity-60'
+                : 'bg-[rgba(255,90,95,0.2)] text-[var(--color-danger)]'
+            }`}
           >
-            {shortLabel}
+            {isPending ? 'Submitting…' : shortLabel}
           </button>
         </div>
+
+        {statusMessage ? (
+          <p
+            className={`text-xs ${
+              statusMessage.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'
+            }`}
+          >
+            {statusMessage.text}
+          </p>
+        ) : disabledReason ? (
+          <p className="text-xs text-[var(--color-text-muted)]">{disabledReason}</p>
+        ) : null}
 
         <div className="grid grid-cols-3 gap-4 text-xs text-[var(--color-text-muted)]">
           <div>
@@ -799,6 +910,64 @@ export function DcaDashboardCard({ data }: { data: DcaDashboardComponent }) {
     totalAccumulated,
     actionLabel = 'Buy Bitcoin Now',
   } = data;
+
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!statusMessage) return;
+    const timeout = window.setTimeout(() => setStatusMessage(null), 4_000);
+    return () => window.clearTimeout(timeout);
+  }, [statusMessage]);
+
+  const metrics = useHyperliquidPerpMetrics(symbol);
+  const { data: redstonePrice } = useRedstonePrice(symbol, { enabled: Boolean(symbol) });
+  const { mutateAsync: placeOrder, isPending } = usePlaceOrder();
+  const { address } = useAccount();
+
+  const market = useMemo(() => metrics.market ?? normalizePerpMarketSymbol(symbol), [metrics.market, symbol]);
+  const livePrice = metrics.price;
+  const oraclePrice = redstonePrice?.value;
+  const orderPrice = livePrice ?? oraclePrice ?? currentPrice;
+  const priceSource = livePrice ? 'Hyperliquid mark' : oraclePrice ? 'Redstone oracle' : 'Snapshot';
+
+  const remainingBudget = Math.max(cycleBudgetUsd - executedUsd, 0);
+  const fallbackSize = Math.max(Math.min(cycleBudgetUsd * 0.25, cycleBudgetUsd), 5);
+  const orderSizeUsd = remainingBudget >= 5 ? remainingBudget : fallbackSize;
+  const completion = progressPct ?? (cycleBudgetUsd > 0 ? (executedUsd / cycleBudgetUsd) * 100 : 0);
+
+  const disabledReason = useMemo(() => {
+    if (!address) return 'Connect wallet to trade';
+    if (!market) return 'Market not supported';
+    if (!(orderPrice && orderPrice > 0)) return 'Price unavailable';
+    if (!(orderSizeUsd && orderSizeUsd >= 5)) return 'Order size must be at least $5';
+    return null;
+  }, [address, market, orderPrice, orderSizeUsd]);
+
+  const handleBuy = async () => {
+    if (disabledReason) {
+      setStatusMessage({ type: 'error', text: disabledReason });
+      return;
+    }
+    try {
+      setStatusMessage(null);
+      await placeOrder({
+        market,
+        side: 'buy',
+        price: orderPrice!,
+        sizeUsd: orderSizeUsd,
+        timeInForce: 'Ioc',
+      });
+      setStatusMessage({ type: 'success', text: `${actionLabel} placed` });
+    } catch (error) {
+      setStatusMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Order request failed',
+      });
+    }
+  };
+
+  const actionDisabled = Boolean(disabledReason) || isPending;
+
   return (
     <BaseCard title={title} subtitle={prompt ?? `${symbol} accumulation`}>
       <div className="flex flex-col gap-6">
@@ -809,12 +978,13 @@ export function DcaDashboardCard({ data }: { data: DcaDashboardComponent }) {
             </span>
             <span>{nextPurchaseEta ? `Next purchase in ${nextPurchaseEta}` : ''}</span>
           </div>
-          <ProgressBar value={progressPct} />
+          <ProgressBar value={completion} />
         </div>
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <SectionLabel>Current {symbol}</SectionLabel>
-            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{formatUsd(currentPrice)}</p>
+            <SectionLabel>Oracle Price</SectionLabel>
+            <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{formatUsd(orderPrice)}</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{priceSource}</p>
           </div>
           <div>
             <SectionLabel>Avg. Cost</SectionLabel>
@@ -825,17 +995,41 @@ export function DcaDashboardCard({ data }: { data: DcaDashboardComponent }) {
             <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{totalAccumulated.toFixed(4)}</p>
           </div>
         </div>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm">
+          <SectionLabel>Planned Order Size</SectionLabel>
+          <p className="mt-1 text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(orderSizeUsd)}</p>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {remainingBudget > 0 ? 'Using remaining weekly budget' : 'Defaulting to 25% of weekly allocation'}
+          </p>
+        </div>
         <button
           type="button"
-          disabled
-          className="w-full rounded-full border border-[var(--color-border)] bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-black"
+          onClick={handleBuy}
+          disabled={actionDisabled}
+          className={`w-full rounded-full border border-[var(--color-border)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] ${
+            actionDisabled
+              ? 'cursor-not-allowed bg-[rgba(11,214,119,0.08)] text-[var(--color-text-muted)] opacity-60'
+              : 'bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-strong)]'
+          }`}
         >
-          {actionLabel}
+          {isPending ? 'Submitting…' : actionLabel}
         </button>
+        {statusMessage ? (
+          <p
+            className={`text-xs ${
+              statusMessage.type === 'error' ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'
+            }`}
+          >
+            {statusMessage.text}
+          </p>
+        ) : disabledReason ? (
+          <p className="text-xs text-[var(--color-text-muted)]">{disabledReason}</p>
+        ) : null}
       </div>
     </BaseCard>
   );
 }
+
 
 export function ArbitrageDashboardCard({ data }: { data: ArbitrageDashboardComponent }) {
   const {

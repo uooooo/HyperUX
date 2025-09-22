@@ -28,28 +28,33 @@ export default function BundlePreviewPage({ params }: PageProps) {
 
   if (!dsl) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-6 py-16 text-white/80">
-        <h1 className="text-2xl font-semibold">Bundle preview not found</h1>
-        <p className="text-sm text-white/60">
-          The bundle <code className="rounded bg-white/10 px-1 py-0.5">{params.bundleHash}</code> has not
-          been registered in the local sample map yet. Update `sampleBundles` in `@/lib/ui-dsl/samples` to
-          preview new layouts locally.
+      <main className="mx-auto flex min-h-[calc(100vh-72px)] max-w-5xl flex-col gap-6 px-6 py-16 text-[var(--color-text-secondary)]">
+        <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">Bundle preview not found</h1>
+        <p className="text-sm">
+          The bundle <code className="rounded bg-[var(--color-bg-soft)] px-1 py-0.5">{params.bundleHash}</code> has not been
+          registered in the local sample map yet. Update `sampleBundles` in `@/lib/ui-dsl/samples` to preview new layouts locally.
         </p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-8 text-white/80">
-      <header className="sticky top-0 z-10 -mx-6 mb-4 border-b border-white/10 bg-black/60 px-6 py-3 backdrop-blur">
-        <KpiBar />
+    <main className="mx-auto flex min-h-[calc(100vh-72px)] max-w-6xl flex-col gap-10 px-6 py-10 text-[var(--color-text-secondary)]">
+      <header className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <p className="text-xs uppercase tracking-[0.4em] text-[var(--color-text-muted)]">Persona · {dsl.persona}</p>
+          <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+            <h1 className="text-3xl font-semibold text-[var(--color-text-primary)]">{dsl.name}</h1>
+            {dsl.description ? <p className="max-w-xl text-sm text-[var(--color-text-secondary)]">{dsl.description}</p> : null}
+          </div>
+        </div>
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[rgba(4,20,17,0.75)] px-6 py-4 shadow-[var(--shadow-card)]">
+          <KpiBar />
+        </div>
       </header>
-      <header className="space-y-2 mt-4">
-        <p className="text-xs uppercase tracking-wide text-white/50">Persona · {dsl.persona}</p>
-        <h1 className="text-3xl font-semibold text-white">{dsl.name}</h1>
-        {dsl.description ? <p className="text-sm text-white/60">{dsl.description}</p> : null}
-      </header>
-      <UiDslRenderer dsl={dsl} />
+      <section className="space-y-6">
+        <UiDslRenderer dsl={dsl} />
+      </section>
     </main>
   );
 }

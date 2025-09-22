@@ -22,3 +22,12 @@ export function formatNumber(value: number, digits = 2) {
     maximumFractionDigits: digits,
   });
 }
+
+const compactFormatter = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+export function formatCompact(value: number) {
+  return compactFormatter.format(value);
+}

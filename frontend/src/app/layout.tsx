@@ -32,12 +32,12 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-black antialiased text-white`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] antialiased`}
+      >
         <ContextProvider cookies={cookies}>
           <AppHeader />
-          <main className="min-h-[calc(100vh-80px)] bg-gradient-to-b from-black via-black to-black/90">
-            {children}
-          </main>
+          <main className="min-h-[calc(100vh-72px)] bg-transparent pb-16 pt-6">{children}</main>
         </ContextProvider>
       </body>
     </html>

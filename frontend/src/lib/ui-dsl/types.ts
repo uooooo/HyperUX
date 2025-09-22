@@ -16,6 +16,9 @@ import {
   momentumCardComponentSchema,
   quickActionsComponentSchema,
   strategyNotesComponentSchema,
+  metricGridComponentSchema,
+  signalFeedComponentSchema,
+  deltaExposureComponentSchema,
 } from './schema';
 
 export type Persona = z.infer<typeof personaSchema>;
@@ -35,6 +38,9 @@ export type HedgeCardComponent = z.infer<typeof hedgeCardComponentSchema>;
 export type MomentumCardComponent = z.infer<typeof momentumCardComponentSchema>;
 export type QuickActionsComponent = z.infer<typeof quickActionsComponentSchema>;
 export type StrategyNotesComponent = z.infer<typeof strategyNotesComponentSchema>;
+export type MetricGridComponent = z.infer<typeof metricGridComponentSchema>;
+export type SignalFeedComponent = z.infer<typeof signalFeedComponentSchema>;
+export type DeltaExposureComponent = z.infer<typeof deltaExposureComponentSchema>;
 
 export type ComponentOfType<TType extends UiComponent['type']> = Extract<
   UiComponent,

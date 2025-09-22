@@ -5,14 +5,17 @@ import {
   AlertsCard,
   ChartPlaceholder,
   DcaScheduleCard,
+  DeltaExposureCard,
   FundingCard,
   HedgeCard,
+  MetricGridCard,
   MomentumCard,
   OrderPanelCard,
   PnLCard,
   PriceTickerCard,
   QuickActionsCard,
   RiskCard,
+  SignalFeedCard,
   SpreadCard,
   StrategyNotesCard,
   UnknownComponent,
@@ -94,6 +97,12 @@ function ComponentRenderer({ component, componentId }: ComponentRendererProps) {
       return <QuickActionsCard data={component} />;
     case 'StrategyNotes':
       return <StrategyNotesCard data={component} />;
+    case 'MetricGrid':
+      return <MetricGridCard data={component} />;
+    case 'SignalFeed':
+      return <SignalFeedCard data={component} />;
+    case 'DeltaExposure':
+      return <DeltaExposureCard data={component} />;
     default:
       return <UnknownComponent componentId={componentId} />;
   }

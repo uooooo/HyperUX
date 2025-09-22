@@ -20,6 +20,8 @@ export const scalpMomentumTemplate: UiDsl = {
       timeframeOptions: ['1m', '5m', '15m'],
       sliderSteps: [25, 50, 75, 100, 150, 200],
       defaultAmountUsd: 100,
+      amountLabel: 'Order Size',
+      inputPlaceholder: 'Tap slider to adjust',
       todaysPnlUsd: 27.83,
       positionsCount: 2,
       targetPct: 0.1,
@@ -112,6 +114,7 @@ export const upbitSnipeTemplate: UiDsl = {
         { source: '@listingalerts', message: 'Upbit announcement after hours', timestamp: '12m ago', severity: 'info' },
       ],
       actionLabel: 'Snipe Long Now',
+      secondaryActionLabel: 'Create Alert',
     },
   },
 };
@@ -139,6 +142,8 @@ export const deltaNeutralTemplate: UiDsl = {
       fundingApr: 0.124,
       dailyPnlUsd: 3.42,
       nextRebalanceEta: '2h 15m',
+      rebalanceLabel: 'Rebalance',
+      closeLabel: 'Close Position',
     },
   },
 };

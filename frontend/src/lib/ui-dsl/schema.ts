@@ -298,6 +298,8 @@ export const scalperDashboardComponentSchema = baseComponentSchema.extend({
   timeframeOptions: z.array(z.string()).min(1).max(5),
   sliderSteps: z.array(z.number().positive()).min(3).max(10),
   defaultAmountUsd: z.number().positive(),
+  amountLabel: z.string().optional(),
+  inputPlaceholder: z.string().optional(),
   longLabel: z.string().optional(),
   shortLabel: z.string().optional(),
   todaysPnlUsd: z.number().optional(),
@@ -316,6 +318,7 @@ export const dcaDashboardComponentSchema = baseComponentSchema.extend({
   currentPrice: z.number().positive(),
   avgCost: z.number().positive(),
   totalAccumulated: z.number().nonnegative(),
+  actionLabel: z.string().optional(),
 });
 
 const arbitrageLegSchema = z.object({
@@ -358,6 +361,7 @@ export const upbitSnipeDashboardComponentSchema = baseComponentSchema.extend({
   autoExecuteEta: z.string().optional(),
   feedItems: z.array(signalFeedItemSchema).min(1),
   actionLabel: z.string().optional(),
+  secondaryActionLabel: z.string().optional(),
 });
 
 export const deltaNeutralDashboardComponentSchema = baseComponentSchema.extend({
@@ -373,6 +377,8 @@ export const deltaNeutralDashboardComponentSchema = baseComponentSchema.extend({
   fundingApr: z.number().optional(),
   dailyPnlUsd: z.number().optional(),
   nextRebalanceEta: z.string().optional(),
+  rebalanceLabel: z.string().optional(),
+  closeLabel: z.string().optional(),
 });
 
 export const componentSchema = z.discriminatedUnion('type', [

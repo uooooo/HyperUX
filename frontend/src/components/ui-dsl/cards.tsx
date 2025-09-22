@@ -683,6 +683,8 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
     timeframeOptions,
     sliderSteps,
     defaultAmountUsd,
+    amountLabel = 'Amount (USD)',
+    inputPlaceholder,
     longLabel = 'Long',
     shortLabel = 'Short',
     todaysPnlUsd,
@@ -702,10 +704,7 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
             <TrendValue value={changePct} />
             <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--color-text-muted)]">
               {timeframeOptions.map((tf) => (
-                <span
-                  key={tf}
-                  className="rounded-full border border-[var(--color-border)] px-3 py-1"
-                >
+                <span key={tf} className="rounded-full border border-[var(--color-border)] px-3 py-1">
                   {tf}
                 </span>
               ))}
@@ -714,12 +713,13 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
         </div>
 
         <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-5 py-6">
-          <div className="flex h-20 items-end justify-between gap-3">
+          <div className="mb-4 h-20 rounded-2xl border border-[rgba(11,214,119,0.18)] bg-gradient-to-br from-[rgba(11,214,119,0.08)] to-transparent" />
+          <div className="flex h-16 items-end justify-between gap-3">
             {sliderSteps.map((step, index) => (
               <div key={`${step}-${index}`} className="flex flex-1 flex-col items-center gap-2">
                 <div
-                  className="w-1 rounded-full bg-[rgba(11,214,119,0.35)]"
-                  style={{ height: `${40 + (index % 2 === 0 ? 20 : 10)}px` }}
+                  className="w-1 rounded-full bg-[rgba(11,214,119,0.4)]"
+                  style={{ height: `${32 + (index % 3 === 0 ? 18 : index % 2 === 0 ? 10 : 6)}px` }}
                 />
                 <span className="text-[10px] text-[var(--color-text-muted)]">{formatUsd(step)}</span>
               </div>
@@ -727,22 +727,28 @@ export function ScalperDashboardCard({ data }: { data: ScalperDashboardComponent
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[minmax(120px,1fr)_repeat(2,minmax(0,1fr))]">
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm">
-            <SectionLabel>Amount</SectionLabel>
-            <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">{formatUsd(defaultAmountUsd)}</p>
+        <div className="grid gap-3 md:grid-cols-[minmax(160px,1fr)_repeat(2,minmax(0,1fr))]">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-4 text-sm">
+            <SectionLabel>{amountLabel}</SectionLabel>
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
+              <span className="text-[var(--color-text-muted)]">$</span>
+              <span className="font-mono text-[var(--color-text-primary)]">{defaultAmountUsd.toFixed(0)}</span>
+              <span className="flex-1 text-right text-[10px] text-[var(--color-text-muted)]">
+                {inputPlaceholder ?? 'USD'}
+              </span>
+            </div>
           </div>
           <button
             type="button"
             disabled
-            className="rounded-2xl border border-[rgba(11,214,119,0.4)] bg-[rgba(11,214,119,0.15)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-success)]"
+            className="rounded-2xl border border-[rgba(11,214,119,0.4)] bg-[rgba(11,214,119,0.2)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-success)]"
           >
             {longLabel}
           </button>
           <button
             type="button"
             disabled
-            className="rounded-2xl border border-[rgba(255,90,95,0.45)] bg-[rgba(255,90,95,0.15)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-danger)]"
+            className="rounded-2xl border border-[rgba(255,90,95,0.45)] bg-[rgba(255,90,95,0.2)] px-4 py-4 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-danger)]"
           >
             {shortLabel}
           </button>
@@ -791,6 +797,7 @@ export function DcaDashboardCard({ data }: { data: DcaDashboardComponent }) {
     currentPrice,
     avgCost,
     totalAccumulated,
+    actionLabel = 'Buy Bitcoin Now',
   } = data;
   return (
     <BaseCard title={title} subtitle={prompt ?? `${symbol} accumulation`}>
@@ -818,6 +825,13 @@ export function DcaDashboardCard({ data }: { data: DcaDashboardComponent }) {
             <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{totalAccumulated.toFixed(4)}</p>
           </div>
         </div>
+        <button
+          type="button"
+          disabled
+          className="w-full rounded-full border border-[var(--color-border)] bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-black"
+        >
+          {actionLabel}
+        </button>
       </div>
     </BaseCard>
   );
@@ -926,6 +940,7 @@ export function UpbitSnipeDashboardCard({ data }: { data: UpbitSnipeDashboardCom
     autoExecuteEta,
     feedItems,
     actionLabel = 'Snipe Long Now',
+    secondaryActionLabel = 'Create Alert',
   } = data;
   return (
     <BaseCard title={title} subtitle={prompt}>
@@ -959,6 +974,13 @@ export function UpbitSnipeDashboardCard({ data }: { data: UpbitSnipeDashboardCom
             className="w-full rounded-full border border-[var(--color-border)] bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-black"
           >
             {actionLabel}
+          </button>
+          <button
+            type="button"
+            disabled
+            className="w-full rounded-full border border-[var(--color-border)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-text-secondary)]"
+          >
+            {secondaryActionLabel}
           </button>
           {autoExecuteEta ? (
             <p className="text-xs text-[var(--color-text-muted)]">Auto-execute in {autoExecuteEta} if confidence &gt; 85%</p>
@@ -1000,6 +1022,8 @@ export function DeltaNeutralDashboardCard({ data }: { data: DeltaNeutralDashboar
     fundingApr,
     dailyPnlUsd,
     nextRebalanceEta,
+    rebalanceLabel = 'Rebalance',
+    closeLabel = 'Close Position',
   } = data;
   const deltaPct = delta * 100;
   const neutralness = Math.max(0, Math.min(100, 100 - Math.abs(deltaPct)));
@@ -1046,6 +1070,22 @@ export function DeltaNeutralDashboardCard({ data }: { data: DeltaNeutralDashboar
             <SectionLabel>Next Rebalance</SectionLabel>
             <p className="text-sm font-medium text-[var(--color-text-primary)]">{nextRebalanceEta ?? '—'}</p>
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled
+            className="rounded-2xl border border-[var(--color-border)] bg-[rgba(11,214,119,0.18)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-success)]"
+          >
+            {rebalanceLabel}
+          </button>
+          <button
+            type="button"
+            disabled
+            className="rounded-2xl border border-[var(--color-border)] bg-[rgba(255,90,95,0.18)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-danger)]"
+          >
+            {closeLabel}
+          </button>
         </div>
       </div>
     </BaseCard>

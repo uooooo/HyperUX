@@ -134,8 +134,9 @@
 
   1. Registry から **splitAddress** を照会
   2. Builder Code 強制：`b=splitAddress`、`f=min(f, fMax)`
-  3. **Idempotency-Key** で重複拒否（30–60秒）
-  4. HL REST（または WS POST）へ送信
+  3. 市場ごとの `szDecimals` を参照し、`size`/`sizeUsd` を Hyperliquid の最小ロットに量子化（下方向丸め）。閾値を下回る場合は 400 を返す。
+  4. **Idempotency-Key** で重複拒否（~60秒）
+  5. HL REST（HTTPS）へ送信。`HttpTransport` の keepalive を無効化して Node fetch のバグを回避。
 * 出力：HLのレスポンスを透過返却
 * 失敗時：**分類**（検証/認可/レート/ネット/サーバ）＋再試行指針
 
